@@ -33,8 +33,9 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 	builder := ecs.NewMap1[comp.Position](world)
 
 	cnt := 0
-	builder.NewBatchFn(len(cells), func(_ ecs.Entity, p *comp.Position) {
+	builder.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position) {
 		*p = cells[cnt]
+		grid.Set(p.X, p.Y, e)
 		cnt++
 	})
 }

@@ -19,9 +19,16 @@ func TestInitTrees(t *testing.T) {
 	s.Initialize(app.World)
 
 	q := ecs.NewFilter1[comp.Position](app.World).Query()
+
+	// get one entity
+	q.Next()
+	pos := q.Get()
+
 	count := q.Count()
 	q.Close()
 
 	assert.Greater(t, count, 4400)
 	assert.Less(t, count, 4600)
+
+	assert.False(t, grid.Get(pos.X, pos.Y).IsZero())
 }
