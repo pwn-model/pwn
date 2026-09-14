@@ -3,6 +3,9 @@ package res
 import "github.com/mlange-42/ark/ecs"
 
 // TreeGrid resource.
+//
+// Trees are stored column-major (consecutive y for fixed x are contiguous),
+// so that column-wise iteration is cache-friendly for large grids.
 type TreeGrid struct {
 	trees  []ecs.Entity
 	width  int
@@ -26,10 +29,10 @@ func (g *TreeGrid) Height() int { return g.height }
 
 // Get the tree entity at the given coordinates.
 func (g *TreeGrid) Get(x, y int) ecs.Entity {
-	return g.trees[x+g.width*y]
+	return g.trees[y+g.height*x]
 }
 
 // Set the tree entity at the given coordinates.
 func (g *TreeGrid) Set(x, y int, e ecs.Entity) {
-	g.trees[x+g.width*y] = e
+	g.trees[y+g.height*x] = e
 }
