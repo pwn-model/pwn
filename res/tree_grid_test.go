@@ -19,7 +19,7 @@ func TestTreeGrid(t *testing.T) {
 	w := ecs.NewWorld()
 	e := w.NewEntity()
 
-	g.Set(5, 0, e)
+	g.Set(0, 5, e)
 	assert.False(t, g.trees[5].IsZero())
 
 	assert.Equal(t, e, g.Get(5, 0))
