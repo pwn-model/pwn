@@ -6,8 +6,8 @@ import (
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
-	"github.com/pwm-model/pwn/res"
-	"github.com/pwm-model/pwn/sys"
+	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/sys"
 )
 
 func BenchmarkAll(b *testing.B) {

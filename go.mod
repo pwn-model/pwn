@@ -1,4 +1,4 @@
-module github.com/pwm-model/pwn
+module github.com/pwn-model/pwn
 
 go 1.27.1
 

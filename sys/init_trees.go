@@ -6,8 +6,8 @@ import (
 
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
-	"github.com/pwm-model/pwn/comp"
-	"github.com/pwm-model/pwn/res"
+	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/res"
 )
 
 // InitTrees system
