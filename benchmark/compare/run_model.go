@@ -10,20 +10,20 @@ import (
 	"github.com/pwn-model/pwn/sys"
 )
 
-func BenchmarkAll(b *testing.B) {
+func setupAndRun(b *testing.B) {
 	for b.Loop() {
 		app := setup(100, 100, 100)
 		app.Run()
 	}
 }
 
-func BenchmarkSetup(b *testing.B) {
+func setupOnly(b *testing.B) {
 	for b.Loop() {
 		_ = setup(100, 100, 100)
 	}
 }
 
-// func BenchmarkRun(b *testing.B) {
+// func runOnly(b *testing.B) {
 // 	for b.Loop() {
 // 		b.StopTimer()
 // 		app := setup(100, 100, 100)
