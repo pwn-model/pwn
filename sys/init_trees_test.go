@@ -5,8 +5,8 @@ import (
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark/ecs"
-	"github.com/pwm-model/pwn/comp"
-	"github.com/pwm-model/pwn/res"
+	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/res"
 	"github.com/stretchr/testify/assert"
 )
 
