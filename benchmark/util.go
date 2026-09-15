@@ -159,6 +159,22 @@ func ReadCSV(file string) ([]Result, error) {
 	return results, nil
 }
 
+// formatNs formats a duration given in nanoseconds, scaling up to μs or ms
+// when the value would otherwise be printed as more than 1999 of the smaller unit.
+func formatNs(ns float64) string {
+	units := "ns"
+	value := ns
+	if value >= 2000 {
+		value /= 1000
+		units = "μs"
+	}
+	if value >= 2000 {
+		value /= 1000
+		units = "ms"
+	}
+	return fmt.Sprintf("%.2f%s", value, units)
+}
+
 // TableToHTML convert benchmark comparison results to HTML.
 func TableToHTML(data []CompResult) string {
 	html := `
@@ -201,12 +217,12 @@ Allocations are only shown for current.
 
 		html += fmt.Sprintf(`            <tr>
             <td align="right">%d</td>
-            <td align="right">%.2fns</td>
-            <td align="right">%.2fns</td>
+            <td align="right">%s</td>
+            <td align="right">%s</td>
             <td align="right">%s %.2f</td>
             <td align="right">%d</td>
             <td align="right">%d</td>
-            </tr>`, r.N, r.TimeMain, r.TimeCurr, emoji, r.Factor, int(r.Allocs), int(r.Bytes))
+            </tr>`, r.N, formatNs(r.TimeMain), formatNs(r.TimeCurr), emoji, r.Factor, int(r.Allocs), int(r.Bytes))
 
 		name = r.Name
 	}
