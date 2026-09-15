@@ -5,6 +5,7 @@ import (
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark/ecs"
+	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/res"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,17 @@ func TestInitGrids(t *testing.T) {
 	assert.Equal(t, ws.Height, trees.Height())
 
 	space := ecs.GetResource[res.SpaceGrid](app.World)
-	grid := res.EntityGrid(*space)
-	assert.Equal(t, 3, grid.Width())  // ceil(25/10)
-	assert.Equal(t, 2, grid.Height()) // ceil(12/10)
+	assert.Equal(t, 3, space.Width())  // ceil(25/10)
+	assert.Equal(t, 2, space.Height()) // ceil(12/10)
+
+	q := ecs.NewFilter1[comp.GridCoords](app.World).Query()
+	count := 0
+	for q.Next() {
+		gc := q.Get()
+		assert.Equal(t, q.Entity(), space.Get(gc.X, gc.Y))
+		count++
+	}
+	q.Close()
+
+	assert.Equal(t, space.Width()*space.Height(), count)
 }
