@@ -12,21 +12,21 @@ import (
 
 func setupAndRun(b *testing.B) {
 	for b.Loop() {
-		app := setup(100, 100, 100)
+		app := setup(1000, 1000, 100)
 		app.Run()
 	}
 }
 
 func setupOnly(b *testing.B) {
 	for b.Loop() {
-		_ = setup(100, 100, 100)
+		_ = setup(1000, 1000, 100)
 	}
 }
 
 // func runOnly(b *testing.B) {
 // 	for b.Loop() {
 // 		b.StopTimer()
-// 		app := setup(100, 100, 100)
+// 		app := setup(1000, 1000, 100)
 // 		b.StartTimer()
 // 		app.Run()
 // 	}
