@@ -12,17 +12,25 @@ import (
 
 func TestInitTrees(t *testing.T) {
 	app := app.New()
-	grid := res.NewEntityGrid(100, 50)
-	ecs.AddResource(app.World, &grid)
+
+	ws := res.WorldSize{Width: 100, Height: 50, Resolution: 10}
+	ecs.AddResource(app.World, &ws)
+
+	gs := InitGrids{}
+	gs.Initialize(app.World)
 
 	s := InitTrees{TreeProbability: 0.9}
 	s.Initialize(app.World)
+
+	grid := ecs.GetResource[res.EntityGrid](app.World)
+	space := ecs.GetResource[res.SpaceGrid](app.World)
 
 	q := ecs.NewFilter1[comp.Position](app.World).Query()
 
 	// get one entity
 	q.Next()
 	pos := q.Get()
+	entity := q.Entity()
 
 	count := q.Count()
 	q.Close()
@@ -31,4 +39,8 @@ func TestInitTrees(t *testing.T) {
 	assert.Less(t, count, 4600)
 
 	assert.False(t, grid.Get(pos.X, pos.Y).IsZero())
+
+	inCell := ecs.NewMap1[comp.InCell](app.World)
+	cell := inCell.GetRelation(entity, 0)
+	assert.Equal(t, space.Get(pos.X/ws.Resolution, pos.Y/ws.Resolution), cell)
 }
