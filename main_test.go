@@ -36,7 +36,7 @@ func setup(width, height, ticks int) *app.App {
 	app := app.New()
 	app.TPS = 0
 
-	treeGrid := res.NewTreeGrid(width, height)
+	treeGrid := res.NewEntityGrid(width, height)
 	ecs.AddResource(app.World, &treeGrid)
 
 	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})

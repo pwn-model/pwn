@@ -12,7 +12,7 @@ func main() {
 	app := app.New()
 	app.TPS = 0
 
-	treeGrid := res.NewTreeGrid(100, 100)
+	treeGrid := res.NewEntityGrid(100, 100)
 	ecs.AddResource(app.World, &treeGrid)
 
 	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})

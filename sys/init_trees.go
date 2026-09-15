@@ -17,7 +17,7 @@ type InitTrees struct {
 
 // Initialize the system.
 func (s *InitTrees) Initialize(world *ecs.World) {
-	grid := ecs.GetResource[res.TreeGrid](world)
+	grid := ecs.GetResource[res.EntityGrid](world)
 	rand := rand.New(ecs.GetResource[resource.Rand](world))
 
 	cells := make([]comp.Position, 0, int(math.Ceil(float64(grid.Width()*grid.Height())*s.TreeProbability*1.1)))

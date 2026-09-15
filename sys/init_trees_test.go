@@ -12,7 +12,7 @@ import (
 
 func TestInitTrees(t *testing.T) {
 	app := app.New()
-	grid := res.NewTreeGrid(100, 50)
+	grid := res.NewEntityGrid(100, 50)
 	ecs.AddResource(app.World, &grid)
 
 	s := InitTrees{TreeProbability: 0.9}
