@@ -36,9 +36,14 @@ func setup(width, height, ticks int) *app.App {
 	app := app.New()
 	app.TPS = 0
 
-	treeGrid := res.NewTreeGrid(width, height)
-	ecs.AddResource(app.World, &treeGrid)
+	worldSize := res.WorldSize{
+		Width:      width,
+		Height:     height,
+		Resolution: 50,
+	}
+	ecs.AddResource(app.World, &worldSize)
 
+	app.AddSystem(&sys.InitGrids{})
 	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 

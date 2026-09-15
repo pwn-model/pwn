@@ -1,7 +1,6 @@
 package sys
 
 import (
-	"math"
 	"math/rand/v2"
 
 	"github.com/mlange-42/ark-tools/resource"
@@ -17,27 +16,38 @@ type InitTrees struct {
 
 // Initialize the system.
 func (s *InitTrees) Initialize(world *ecs.World) {
-	grid := ecs.GetResource[res.TreeGrid](world)
+	ws := ecs.GetResource[res.WorldSize](world)
+	grid := ecs.GetResource[res.SpaceGrid](world)
+	trees := ecs.GetResource[res.EntityGrid](world)
 	rand := rand.New(ecs.GetResource[resource.Rand](world))
 
-	cells := make([]comp.Position, 0, int(math.Ceil(float64(grid.Width()*grid.Height())*s.TreeProbability*1.1)))
+	builder := ecs.NewMap2[comp.Position, comp.InCell](world)
+	cells := make([]comp.Position, 0, ws.Resolution*ws.Resolution)
 
 	for x := range grid.Width() {
 		for y := range grid.Height() {
-			if s.TreeProbability >= 1 || rand.Float64() < s.TreeProbability {
-				cells = append(cells, comp.Position{X: x, Y: y})
+			cells := cells[:0]
+			cell := grid.Get(x, y)
+
+			for dx := range ws.Resolution {
+				for dy := range ws.Resolution {
+					if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {
+						continue
+					}
+					xx := x*ws.Resolution + dx
+					yy := y*ws.Resolution + dy
+					cells = append(cells, comp.Position{X: xx, Y: yy})
+				}
 			}
+
+			cnt := 0
+			builder.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position, _ *comp.InCell) {
+				*p = cells[cnt]
+				trees.Set(p.X, p.Y, e)
+				cnt++
+			}, ecs.RelIdx(1, cell))
 		}
 	}
-
-	builder := ecs.NewMap1[comp.Position](world)
-
-	cnt := 0
-	builder.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position) {
-		*p = cells[cnt]
-		grid.Set(p.X, p.Y, e)
-		cnt++
-	})
 }
 
 // Update the system.
