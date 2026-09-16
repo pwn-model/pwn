@@ -57,6 +57,12 @@ func setup(width, height, ticks int) *app.App {
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
+	app.AddSystem(&sys.RandomInfection{
+		TickOfInfection: 0,
+		NumTrees:        100,
+		CellX:           10,
+		CellY:           10,
+	})
 
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 
