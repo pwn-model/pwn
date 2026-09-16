@@ -12,3 +12,9 @@ type Position struct {
 type InCell struct {
 	ecs.RelationMarker
 }
+
+// Damaged marks a tree as damaged in the perception of the vector.
+type Damaged struct{}
+
+// NematodeInfected marks a tree as infested with PWN.
+type NematodeInfected struct{}

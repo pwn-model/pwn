@@ -44,7 +44,10 @@ func setup(width, height, ticks int) *app.App {
 	ecs.AddResource(app.World, &worldSize)
 
 	app.AddSystem(&sys.InitGrids{})
-	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})
+	app.AddSystem(&sys.InitTrees{
+		TreeProbability:  0.9,
+		DamagePrevalence: 0.03,
+	})
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 
 	app.Initialize()

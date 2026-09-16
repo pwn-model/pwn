@@ -20,7 +20,10 @@ func main() {
 	ecs.AddResource(app.World, &worldSize)
 
 	app.AddSystem(&sys.InitGrids{})
-	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})
+	app.AddSystem(&sys.InitTrees{
+		TreeProbability:  0.9,
+		DamagePrevalence: 0.03,
+	})
 	app.AddSystem(&system.FixedTermination{Steps: 100})
 
 	app.Run()
