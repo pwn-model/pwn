@@ -19,18 +19,21 @@ func TestDiseaseCourse(t *testing.T) {
 	infected := ecs.NewMap1[comp.NematodeInfected](a.World)
 	damaged := ecs.NewMap1[comp.Damaged](a.World)
 
-	// Elapsed time (tick - InfectionTick) is within TicksToDamage.
-	inWindow := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 8})
-	// Elapsed time exceeds TicksToDamage.
-	outOfWindow := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0})
+	// Elapsed time (tick - InfectionTick) exceeds TicksToDamage.
+	longInfected := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0})
+	// Elapsed time equals TicksToDamage exactly (inclusive boundary).
+	atThreshold := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 5})
+	// Elapsed time is below TicksToDamage.
+	recentlyInfected := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 8})
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 	tick.Tick = 10
 
 	s.Update(a.World)
 
-	assert.True(t, damaged.HasAll(inWindow))
-	assert.False(t, damaged.HasAll(outOfWindow))
+	assert.True(t, damaged.HasAll(longInfected))
+	assert.True(t, damaged.HasAll(atThreshold))
+	assert.False(t, damaged.HasAll(recentlyInfected))
 }
 
 func TestDiseaseCourseSkipsAlreadyDamaged(t *testing.T) {
@@ -40,7 +43,9 @@ func TestDiseaseCourseSkipsAlreadyDamaged(t *testing.T) {
 	s.Initialize(a.World)
 
 	infected := ecs.NewMap2[comp.NematodeInfected, comp.Damaged](a.World)
-	entity := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 8}, &comp.Damaged{})
+	// Elapsed time exceeds TicksToDamage, so this entity would be eligible
+	// for damage if it weren't already damaged.
+	entity := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0}, &comp.Damaged{})
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 	tick.Tick = 10
@@ -56,7 +61,7 @@ func TestDiseaseCourseSkipsAlreadyDamaged(t *testing.T) {
 func TestDiseaseCourseIdempotentAcrossTicks(t *testing.T) {
 	a := app.New()
 
-	s := DiseaseCourse{TicksToDamage: 5}
+	s := DiseaseCourse{TicksToDamage: 0}
 	s.Initialize(a.World)
 
 	infected := ecs.NewMap1[comp.NematodeInfected](a.World)

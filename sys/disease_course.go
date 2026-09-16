@@ -35,7 +35,7 @@ func (s *DiseaseCourse) Update(world *ecs.World) {
 		infected := query.GetColumns()
 		for i := range infected {
 			inf := &infected[i]
-			if inf.InfectionTick+ticksToDamage >= tick {
+			if tick >= inf.InfectionTick+ticksToDamage {
 				s.toDamage = append(s.toDamage, entities[i])
 			}
 		}
