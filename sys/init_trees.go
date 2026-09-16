@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"math"
 	"math/rand/v2"
 
 	"github.com/mlange-42/ark-tools/resource"
@@ -11,7 +12,8 @@ import (
 
 // InitTrees system
 type InitTrees struct {
-	TreeProbability float64
+	TreeProbability  float64
+	DamagePrevalence float64
 }
 
 // Initialize the system.
@@ -21,12 +23,16 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 	trees := ecs.GetResource[res.EntityGrid](world)
 	rand := rand.New(ecs.GetResource[resource.Rand](world))
 
-	builder := ecs.NewMap2[comp.Position, comp.InCell](world)
+	builderDefault := ecs.NewMap2[comp.Position, comp.InCell](world)
+	builderDamaged := ecs.NewMap3[comp.Position, comp.InCell, comp.Damaged](world)
+
 	cells := make([]comp.Position, 0, ws.Resolution*ws.Resolution)
+	damaged := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution*ws.Resolution)*s.DamagePrevalence*1.2)))
 
 	for x := range grid.Width() {
 		for y := range grid.Height() {
 			cells := cells[:0]
+			damaged := damaged[:0]
 			cell := grid.Get(x, y)
 
 			for dx := range ws.Resolution {
@@ -36,13 +42,24 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 					}
 					xx := x*ws.Resolution + dx
 					yy := y*ws.Resolution + dy
-					cells = append(cells, comp.Position{X: xx, Y: yy})
+					if rand.Float64() < s.DamagePrevalence {
+						damaged = append(damaged, comp.Position{X: xx, Y: yy})
+					} else {
+						cells = append(cells, comp.Position{X: xx, Y: yy})
+					}
 				}
 			}
 
 			cnt := 0
-			builder.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position, _ *comp.InCell) {
+			builderDefault.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position, _ *comp.InCell) {
 				*p = cells[cnt]
+				trees.Set(p.X, p.Y, e)
+				cnt++
+			}, ecs.RelIdx(1, cell))
+
+			cnt = 0
+			builderDamaged.NewBatchFn(len(damaged), func(e ecs.Entity, p *comp.Position, _ *comp.InCell, _ *comp.Damaged) {
+				*p = damaged[cnt]
 				trees.Set(p.X, p.Y, e)
 				cnt++
 			}, ecs.RelIdx(1, cell))
