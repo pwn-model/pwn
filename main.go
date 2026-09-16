@@ -30,6 +30,11 @@ func main() {
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 	})
+
+	app.AddSystem(&sys.DiseaseCourse{
+		TicksToDamage: 8,
+	})
+
 	app.AddSystem(&system.FixedTermination{Steps: 100})
 
 	app.Run()

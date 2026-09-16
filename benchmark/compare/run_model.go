@@ -53,6 +53,11 @@ func setup(width, height, ticks int) *app.App {
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 	})
+
+	app.AddSystem(&sys.DiseaseCourse{
+		TicksToDamage: 8,
+	})
+
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 
 	app.Initialize()
