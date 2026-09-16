@@ -12,9 +12,14 @@ func main() {
 	app := app.New()
 	app.TPS = 0
 
-	treeGrid := res.NewTreeGrid(100, 100)
-	ecs.AddResource(app.World, &treeGrid)
+	worldSize := res.WorldSize{
+		Width:      1000,
+		Height:     1000,
+		Resolution: 50,
+	}
+	ecs.AddResource(app.World, &worldSize)
 
+	app.AddSystem(&sys.InitGrids{})
 	app.AddSystem(&sys.InitTrees{TreeProbability: 0.9})
 	app.AddSystem(&system.FixedTermination{Steps: 100})
 
