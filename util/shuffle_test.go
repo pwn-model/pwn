@@ -10,10 +10,11 @@ import (
 func TestShuffleMatchesJuliaImplementation(t *testing.T) {
 	// Hard-coded result of seeding the sibling Julia implementation's RNG
 	// with the same seed and shuffling the same slice:
-	//   rng = Xoshiro(1); v = collect(1:10); Random.shuffle!(rng, v)
+	//   rng = Xoshiro(1); v = collect(1:10); PWNModel.frozen_shuffle!(rng, v)
 	// Both implementations must produce this exact permutation for the
-	// model runs to select the same trees across languages.
-	expected := []int{4, 3, 5, 10, 6, 1, 7, 9, 8, 2}
+	// model runs to select the same trees across languages, regardless of
+	// which Julia version is installed (see Shuffle's doc comment).
+	expected := []int{2, 7, 4, 5, 1, 6, 10, 9, 3, 8}
 
 	values := []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 	Shuffle(res.NewXoshiro256pp(1), values)

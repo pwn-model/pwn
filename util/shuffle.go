@@ -2,42 +2,42 @@
 // specific component/resource/system layer.
 package util
 
-import "math/rand/v2"
+import (
+	"math/bits"
+	"math/rand/v2"
+)
 
-// Shuffle permutes s in place, using the same algorithm as Julia's
-// Random.shuffle! (stdlib Random.jl) for an Xoshiro-backed RNG: a forward
-// Fisher-Yates variant that draws each swap index from the high 52 bits of
-// a raw Uint64 draw (matching Julia's UInt52Raw, which right-shifts a raw
-// draw by 12 bits rather than masking its low bits), masks that down to a
-// bitmask sized to the current index, and rejects out-of-range results,
-// growing the mask as needed. This differs from math/rand/v2's
-// Lemire-multiply-based [rand.Rand.Shuffle].
+// Shuffle permutes s in place, using the same algorithm as the sibling
+// Julia implementation's frozen_shuffle! (PWNModel.jl/src/util/shuffle.jl):
+// a forward Fisher-Yates using Lemire's multiply-high method with rejection
+// sampling near the bias boundary (Julia's "Nearly Division Less" ranged
+// sampler, see Random.SamplerRangeNDL, https://arxiv.org/abs/1805.10941,
+// algorithm 5).
 //
-// This must be kept in sync with Julia's shuffle!, which the sibling Julia
-// implementation relies on for tree selection (see
-// PWNModel.jl/src/sys/random_infection.jl), so that both implementations
-// select the same trees from the same seed.
+// PWNModel.jl deliberately does not call Julia's own Random.shuffle! for
+// this: that stdlib function's algorithm has changed at least three times
+// across recent Julia releases (confirmed different permutations from the
+// same seed on Julia 1.10, 1.12 and 1.13), so it is not a stable target.
+// Both implementations instead use this frozen algorithm, so they select
+// the same trees from the same seed regardless of which Julia version is
+// installed.
 func Shuffle[T any](src rand.Source, s []T) {
 	n := len(s)
-	if n == 0 {
-		return
-	}
-
-	mask := uint64(3)
 	for i := 1; i < n; i++ {
-		sup := uint64(i)
-
-		var j uint64
-		for {
-			j = (src.Uint64() >> 12) & mask
-			if j <= sup {
-				break
-			}
-		}
-
+		j := randRange(src, uint64(i+1))
 		s[i], s[j] = s[j], s[i]
-		if uint64(i) == mask {
-			mask = 2*mask + 1
+	}
+}
+
+// randRange draws a uniform uint64 in [0, n) via Lemire's multiply-high
+// method with rejection sampling near the bias boundary.
+func randRange(src rand.Source, n uint64) uint64 {
+	hi, lo := bits.Mul64(src.Uint64(), n)
+	if lo < n {
+		t := -n % n
+		for lo < t {
+			hi, lo = bits.Mul64(src.Uint64(), n)
 		}
 	}
+	return hi
 }
