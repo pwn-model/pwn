@@ -1,12 +1,11 @@
 package sys
 
 import (
-	"math/rand/v2"
-
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 // RandomInfection infects the given number of trees in the given grid cell.
@@ -35,7 +34,7 @@ func (s *RandomInfection) Update(world *ecs.World) {
 		return
 	}
 
-	rng := rand.New(ecs.GetResource[resource.Rand](world))
+	rng := ecs.GetResource[resource.Rand](world)
 	worldSize := ecs.GetResource[res.WorldSize](world)
 	grid := ecs.GetResource[res.SpaceGrid](world)
 	cell := grid.Get(s.CellX, s.CellY)
@@ -47,7 +46,7 @@ func (s *RandomInfection) Update(world *ecs.World) {
 		toInfect = append(toInfect, query.Entities()...)
 	}
 
-	rng.Shuffle(len(toInfect), func(i, j int) { toInfect[i], toInfect[j] = toInfect[j], toInfect[i] })
+	util.Shuffle(rng, toInfect)
 	for i := range min(len(toInfect), s.NumTrees) {
 		s.mapper.Add(toInfect[i], &comp.NematodeInfected{InfectionTick: tick})
 	}
