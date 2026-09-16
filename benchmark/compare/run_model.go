@@ -25,14 +25,14 @@ func setupOnly(b *testing.B) {
 	}
 }
 
-// func runOnly(b *testing.B) {
-// 	for b.Loop() {
-// 		b.StopTimer()
-// 		app := setup(1000, 1000, 100)
-// 		b.StartTimer()
-// 		app.Run()
-// 	}
-// }
+func runOnly(b *testing.B) {
+	for b.Loop() {
+		b.StopTimer()
+		app := setup(1000, 1000, 100)
+		b.StartTimer()
+		app.Run()
+	}
+}
 
 func setup(width, height, ticks int) *app.App {
 	app := app.New()

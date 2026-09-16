@@ -25,7 +25,7 @@ func (s *DiseaseCourse) Initialize(world *ecs.World) {
 }
 
 // Update the system.
-func (s *DiseaseCourse) Update(world *ecs.World) {
+func (s *DiseaseCourse) Update(_ *ecs.World) {
 	tick := s.ticksRes.Get().Tick
 	ticksToDamage := int64(s.TicksToDamage)
 
