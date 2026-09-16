@@ -25,14 +25,14 @@ func setupOnly(b *testing.B) {
 	}
 }
 
-// func runOnly(b *testing.B) {
-// 	for b.Loop() {
-// 		b.StopTimer()
-// 		app := setup(1000, 1000, 100)
-// 		b.StartTimer()
-// 		app.Run()
-// 	}
-// }
+func runOnly(b *testing.B) {
+	for b.Loop() {
+		b.StopTimer()
+		app := setup(1000, 1000, 100)
+		b.StartTimer()
+		app.Run()
+	}
+}
 
 func setup(width, height, ticks int) *app.App {
 	app := app.New()
@@ -53,6 +53,17 @@ func setup(width, height, ticks int) *app.App {
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 	})
+
+	app.AddSystem(&sys.DiseaseCourse{
+		TicksToDamage: 8,
+	})
+	app.AddSystem(&sys.RandomInfection{
+		TickOfInfection: 0,
+		NumTrees:        100,
+		CellX:           10,
+		CellY:           10,
+	})
+
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 
 	app.Initialize()

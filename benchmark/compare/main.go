@@ -30,7 +30,7 @@ func main() {
 func benchesCompare() []benchmark.Benchmark {
 	return []benchmark.Benchmark{
 		{Name: "Setup model", Desc: "", F: setupOnly, N: 1},
-		// {Name: "Run model", Desc: "", F: runOnly, N: 1},
+		{Name: "Run model", Desc: "", F: runOnly, N: 1},
 		{Name: "Setup + run model", Desc: "", F: setupAndRun, N: 1},
 	}
 }

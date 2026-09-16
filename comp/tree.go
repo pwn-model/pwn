@@ -17,4 +17,6 @@ type InCell struct {
 type Damaged struct{}
 
 // NematodeInfected marks a tree as infested with PWN.
-type NematodeInfected struct{}
+type NematodeInfected struct {
+	InfectionTick int64
+}
