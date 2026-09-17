@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -20,7 +18,7 @@ func main() {
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
-	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
+	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
 		Width:      200,

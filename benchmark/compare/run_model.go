@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/resource"
@@ -40,7 +39,7 @@ func setup(width, height, ticks int) *app.App {
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
-	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
+	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
 		Width:      width,
