@@ -38,6 +38,7 @@ func setup(width, height, ticks int) *app.App {
 	app := app.New()
 	app.TPS = 0
 
+	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
 
@@ -48,12 +49,14 @@ func setup(width, height, ticks int) *app.App {
 	}
 	ecs.AddResource(app.World, &worldSize)
 
+	// Initialization
 	app.AddSystem(&sys.InitGrids{})
 	app.AddSystem(&sys.InitTrees{
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 	})
 
+	// Systems
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
@@ -64,6 +67,7 @@ func setup(width, height, ticks int) *app.App {
 		CellY:           10,
 	})
 
+	// Stop criterion
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
 
 	app.Initialize()

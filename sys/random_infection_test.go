@@ -36,7 +36,7 @@ func TestRandomInfection(t *testing.T) {
 	s.Initialize(world)
 
 	tick := ecs.GetResource[resource.Tick](world)
-	infected := ecs.NewFilter1[comp.NematodeInfected](world)
+	infected := ecs.NewFilter1[comp.Infected](world)
 
 	// Ticks before TickOfInfection must not infect anything.
 	for tick.Tick = 0; tick.Tick < 3; tick.Tick++ {
@@ -54,7 +54,7 @@ func TestRandomInfection(t *testing.T) {
 	inCell := ecs.NewMap1[comp.InCell](world)
 	target := space.Get(0, 0)
 
-	posQuery := ecs.NewFilter2[comp.Position, comp.NematodeInfected](world).Query()
+	posQuery := ecs.NewFilter2[comp.Position, comp.Infected](world).Query()
 	count := 0
 	for posQuery.Next() {
 		pos, inf := posQuery.Get()
@@ -85,7 +85,7 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 	target := space.Get(0, 0)
 
 	// Mark all trees in the target cell as already infected, except one.
-	infectMapper := ecs.NewMap1[comp.NematodeInfected](world)
+	infectMapper := ecs.NewMap1[comp.Infected](world)
 	posInCell := ecs.NewFilter2[comp.Position, comp.InCell](world).Query(ecs.RelIdx(1, target))
 	var spared ecs.Entity
 	sparedSet := false
@@ -101,7 +101,7 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 	}
 	posInCell.Close()
 	for _, e := range toPreInfect {
-		infectMapper.Add(e, &comp.NematodeInfected{InfectionTick: -1})
+		infectMapper.Add(e, &comp.Infected{InfectionTick: -1})
 	}
 
 	s := RandomInfection{TickOfInfection: 0, NumTrees: 5, CellX: 0, CellY: 0}
@@ -112,7 +112,7 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 	s.Update(world)
 
 	// Only the one remaining eligible tree can have been (re)infected.
-	infectedFilter := ecs.NewFilter2[comp.Position, comp.NematodeInfected](world)
+	infectedFilter := ecs.NewFilter2[comp.Position, comp.Infected](world)
 	q := infectedFilter.Query()
 	newlyInfected := 0
 	for q.Next() {
@@ -137,7 +137,7 @@ func TestRandomInfectionCapsAtAvailableTrees(t *testing.T) {
 	tick.Tick = 0
 	assert.NotPanics(t, func() { s.Update(world) })
 
-	q := ecs.NewFilter1[comp.NematodeInfected](world).Query()
+	q := ecs.NewFilter1[comp.Infected](world).Query()
 	assert.Equal(t, 100, q.Count())
 	q.Close()
 }
@@ -153,7 +153,7 @@ func TestRandomInfectionOnlyTargetsSpecifiedCell(t *testing.T) {
 	s.Update(world)
 
 	ws := ecs.GetResource[res.WorldSize](world)
-	q := ecs.NewFilter2[comp.Position, comp.NematodeInfected](world).Query()
+	q := ecs.NewFilter2[comp.Position, comp.Infected](world).Query()
 	for q.Next() {
 		pos, _ := q.Get()
 		assert.GreaterOrEqual(t, pos.X, ws.Resolution)
