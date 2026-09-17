@@ -3,6 +3,8 @@ package main
 import (
 	"time"
 
+	"github.com/mlange-42/ark-pixel/plot"
+	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/reporter"
 	"github.com/mlange-42/ark-tools/resource"
@@ -15,15 +17,15 @@ import (
 
 func main() {
 	app := app.New()
-	app.TPS = 0
+	app.TPS = 30
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
 
 	worldSize := res.WorldSize{
-		Width:      1000,
-		Height:     1000,
+		Width:      200,
+		Height:     200,
 		Resolution: 50,
 	}
 	ecs.AddResource(app.World, &worldSize)
@@ -42,18 +44,23 @@ func main() {
 	app.AddSystem(&sys.RandomInfection{
 		TickOfInfection: 0,
 		NumTrees:        100,
-		CellX:           10,
-		CellY:           10,
+		CellX:           2,
+		CellY:           2,
 	})
 
 	// Observers
 	app.AddSystem(&reporter.CSV{
-		Observer: &obs.TreePopulationObserver{},
+		Observer: &obs.TreePopulation{},
 		File:     "out/tree_pop.csv",
 	})
 
-	// Stop criterion
-	app.AddSystem(&system.FixedTermination{Steps: 100})
+	app.AddUISystem((&window.Window{}).
+		With(&plot.TimeSeries{
+			Observer: &obs.TreeDamage{},
+		}))
 
-	app.Run()
+	// Stop criterion
+	app.AddSystem(&system.FixedTermination{Steps: 1000})
+
+	window.Run(app)
 }

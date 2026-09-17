@@ -12,7 +12,7 @@ import (
 func TestTreePopulationObserver(t *testing.T) {
 	a := app.New()
 
-	o := TreePopulationObserver{}
+	o := TreePopulation{}
 	o.Initialize(a.World)
 
 	healthy := ecs.NewMap1[comp.Position](a.World)
