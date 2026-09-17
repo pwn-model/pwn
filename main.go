@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -10,20 +12,21 @@ import (
 	"github.com/pwn-model/pwn/obs"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
+	"github.com/pwn-model/pwn/util"
 )
 
 func main() {
 	app := app.New()
-	app.TPS = 30
+	app.TPS = 0
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
-		Width:      200,
-		Height:     200,
-		Resolution: 50,
+		Width:      120,
+		Height:     120,
+		Resolution: 20,
 	}
 	ecs.AddResource(app.World, &worldSize)
 
@@ -54,10 +57,10 @@ func main() {
 	})
 
 	// Observers
-	app.AddUISystem((&window.Window{}).
-		With(&plot.TimeSeries{
-			Observer: &obs.TreePopulation{},
-		}))
+	// app.AddUISystem((&window.Window{}).
+	// 	With(&plot.TimeSeries{
+	// 		Observer: &obs.TreePopulation{},
+	// 	}))
 
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{
@@ -65,7 +68,9 @@ func main() {
 		}))
 
 	// Stop criterion
-	app.AddSystem(&system.FixedTermination{Steps: 1000})
+	app.AddSystem(&system.FixedTermination{Steps: 520})
 
 	window.Run(app)
+
+	fmt.Println(util.TreesToString(app.World))
 }
