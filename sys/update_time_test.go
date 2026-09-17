@@ -13,7 +13,7 @@ import (
 func TestUpdateTime(t *testing.T) {
 	a := app.New()
 
-	s := UpdateTime{WeeksPerYear: 52}
+	s := UpdateTime{TicksPerYear: 52}
 	s.Initialize(a.World)
 
 	tick := ecs.GetResource[resource.Tick](a.World)

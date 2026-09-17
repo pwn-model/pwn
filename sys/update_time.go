@@ -8,7 +8,7 @@ import (
 
 // UpdateTime adds and updates the Time resource
 type UpdateTime struct {
-	WeeksPerYear int
+	TicksPerYear int
 
 	time    res.Time
 	tickRes ecs.Resource[resource.Tick]
@@ -26,8 +26,8 @@ func (s *UpdateTime) Initialize(world *ecs.World) {
 func (s *UpdateTime) Update(_ *ecs.World) {
 	tick := int(s.tickRes.Get().Tick)
 	s.time.Tick = tick
-	s.time.TickOfYear = tick % s.WeeksPerYear
-	s.time.Year = tick / s.WeeksPerYear
+	s.time.TickOfYear = tick % s.TicksPerYear
+	s.time.Year = tick / s.TicksPerYear
 }
 
 // Finalize the system.

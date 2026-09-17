@@ -38,7 +38,7 @@ func main() {
 
 	// Systems
 	app.AddSystem(&sys.UpdateTime{
-		WeeksPerYear: 52,
+		TicksPerYear: 52,
 	})
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
