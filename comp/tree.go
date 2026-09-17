@@ -18,5 +18,5 @@ type Damaged struct{}
 
 // Infected marks a tree as infested with PWN.
 type Infected struct {
-	InfectionTick int64
+	InfectionTick int
 }

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/mlange-42/ark-tools/app"
-	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/res"
@@ -35,11 +34,12 @@ func TestRandomInfection(t *testing.T) {
 	s := RandomInfection{TickOfInfection: 3, NumTrees: 10, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
-	tick := ecs.GetResource[resource.Tick](world)
+	time := res.Time{}
+	ecs.AddResource(world, &time)
 	infected := ecs.NewFilter1[comp.Infected](world)
 
 	// Ticks before TickOfInfection must not infect anything.
-	for tick.Tick = 0; tick.Tick < 3; tick.Tick++ {
+	for time.Tick = 0; time.Tick < 3; time.Tick++ {
 		s.Update(world)
 	}
 	q := infected.Query()
@@ -60,7 +60,7 @@ func TestRandomInfection(t *testing.T) {
 		pos, inf := posQuery.Get()
 		entity := posQuery.Entity()
 
-		assert.Equal(t, int64(3), inf.InfectionTick)
+		assert.Equal(t, 3, inf.InfectionTick)
 		assert.Equal(t, target, inCell.GetRelation(entity, 0))
 		assert.Less(t, pos.X, ws.Resolution)
 		assert.Less(t, pos.Y, ws.Resolution)
@@ -70,7 +70,7 @@ func TestRandomInfection(t *testing.T) {
 	assert.Equal(t, 10, count)
 
 	// Later ticks must not infect further trees.
-	tick.Tick = 4
+	time.Tick = 4
 	s.Update(world)
 
 	q = infected.Query()
@@ -107,8 +107,7 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 	s := RandomInfection{TickOfInfection: 0, NumTrees: 5, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
-	tick := ecs.GetResource[resource.Tick](world)
-	tick.Tick = 0
+	ecs.AddResource(world, &res.Time{Tick: 0})
 	s.Update(world)
 
 	// Only the one remaining eligible tree can have been (re)infected.
@@ -133,8 +132,7 @@ func TestRandomInfectionCapsAtAvailableTrees(t *testing.T) {
 	s := RandomInfection{TickOfInfection: 0, NumTrees: 1000, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
-	tick := ecs.GetResource[resource.Tick](world)
-	tick.Tick = 0
+	ecs.AddResource(world, &res.Time{Tick: 0})
 	assert.NotPanics(t, func() { s.Update(world) })
 
 	q := ecs.NewFilter1[comp.Infected](world).Query()
@@ -148,8 +146,7 @@ func TestRandomInfectionOnlyTargetsSpecifiedCell(t *testing.T) {
 	s := RandomInfection{TickOfInfection: 0, NumTrees: 10, CellX: 1, CellY: 1}
 	s.Initialize(world)
 
-	tick := ecs.GetResource[resource.Tick](world)
-	tick.Tick = 0
+	ecs.AddResource(world, &res.Time{Tick: 0})
 	s.Update(world)
 
 	ws := ecs.GetResource[res.WorldSize](world)

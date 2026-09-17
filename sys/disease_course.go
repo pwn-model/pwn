@@ -1,18 +1,18 @@
 package sys
 
 import (
-	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/res"
 )
 
 // DiseaseCourse system.
 type DiseaseCourse struct {
 	TicksToDamage int
 
-	filter   *ecs.Filter1[comp.Infected]
-	mapper   *ecs.Map1[comp.Damaged]
-	ticksRes ecs.Resource[resource.Tick]
+	filter  *ecs.Filter1[comp.Infected]
+	mapper  *ecs.Map1[comp.Damaged]
+	timeRes ecs.Resource[res.Time]
 
 	toDamage []ecs.Entity
 }
@@ -21,13 +21,12 @@ type DiseaseCourse struct {
 func (s *DiseaseCourse) Initialize(world *ecs.World) {
 	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged]())
 	s.mapper = s.mapper.New(world)
-	s.ticksRes = s.ticksRes.New(world)
+	s.timeRes = s.timeRes.New(world)
 }
 
 // Update the system.
 func (s *DiseaseCourse) Update(_ *ecs.World) {
-	tick := s.ticksRes.Get().Tick
-	ticksToDamage := int64(s.TicksToDamage)
+	tick := s.timeRes.Get().Tick
 
 	query := s.filter.Query()
 	for query.NextTable() {
@@ -35,7 +34,7 @@ func (s *DiseaseCourse) Update(_ *ecs.World) {
 		infected := query.GetColumns()
 		for i := range infected {
 			inf := &infected[i]
-			if tick >= inf.InfectionTick+ticksToDamage {
+			if tick >= inf.InfectionTick+s.TicksToDamage {
 				s.toDamage = append(s.toDamage, entities[i])
 			}
 		}

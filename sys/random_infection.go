@@ -16,21 +16,21 @@ type RandomInfection struct {
 
 	filter  *ecs.Filter2[comp.Position, comp.InCell]
 	mapper  *ecs.Map1[comp.Infected]
-	tickRes ecs.Resource[resource.Tick]
+	timeRes ecs.Resource[res.Time]
 }
 
 // Initialize the system.
 func (s *RandomInfection) Initialize(world *ecs.World) {
 	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged](), ecs.C[comp.Infected]())
 	s.mapper = s.mapper.New(world)
-	s.tickRes = s.tickRes.New(world)
+	s.timeRes = s.timeRes.New(world)
 }
 
 // Update the system.
 func (s *RandomInfection) Update(world *ecs.World) {
-	tick := s.tickRes.Get().Tick
+	tick := s.timeRes.Get().Tick
 
-	if tick != int64(s.TickOfInfection) {
+	if tick != s.TickOfInfection {
 		return
 	}
 

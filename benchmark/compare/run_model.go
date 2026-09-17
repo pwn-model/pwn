@@ -57,6 +57,9 @@ func setup(width, height, ticks int) *app.App {
 	})
 
 	// Systems
+	app.AddSystem(&sys.UpdateTime{
+		WeeksPerYear: 52,
+	})
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
