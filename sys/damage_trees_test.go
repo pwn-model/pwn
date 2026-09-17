@@ -76,19 +76,25 @@ func TestDamageTreesRemovesAllWithProbabilityOne(t *testing.T) {
 	a := app.New()
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 3})
 
+	grid := res.NewEntityGrid(5, 1)
+	ecs.AddResource(a.World, &grid)
+
 	s := DamageTrees{TickOfYear: 3, DamageProbability: 0, RemovalProbability: 1}
 	s.Initialize(a.World)
 
 	damagedMap := ecs.NewMap2[comp.Position, comp.Damaged](a.World)
 	entities := make([]ecs.Entity, 5)
 	for i := range entities {
-		entities[i] = damagedMap.NewEntity(&comp.Position{X: i}, &comp.Damaged{})
+		pos := comp.Position{X: i}
+		entities[i] = damagedMap.NewEntity(&pos, &comp.Damaged{})
+		grid.Set(pos.X, pos.Y, entities[i])
 	}
 
 	s.Update(a.World)
 
-	for _, e := range entities {
+	for i, e := range entities {
 		assert.False(t, a.World.Alive(e))
+		assert.True(t, grid.Get(i, 0).IsZero())
 	}
 }
 

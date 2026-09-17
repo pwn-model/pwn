@@ -17,12 +17,13 @@ type DamageTrees struct {
 
 	timeRes       ecs.Resource[res.Time]
 	randRes       ecs.Resource[resource.Rand]
+	gridRes       ecs.Resource[res.EntityGrid]
 	filter        *ecs.Filter0
-	filterDamaged *ecs.Filter0
+	filterDamaged *ecs.Filter1[comp.Position]
 
 	damageMap *ecs.Map1[comp.Damaged]
 
-	toRemove []ecs.Entity
+	toRemove []comp.Position
 	toDamage []ecs.Entity
 }
 
@@ -30,6 +31,7 @@ type DamageTrees struct {
 func (s *DamageTrees) Initialize(world *ecs.World) {
 	s.timeRes = s.timeRes.New(world)
 	s.randRes = s.randRes.New(world)
+	s.gridRes = s.gridRes.New(world)
 
 	s.filter = s.filter.New(world).With(ecs.C[comp.Position]()).Without(ecs.C[comp.Damaged]())
 	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
@@ -46,23 +48,28 @@ func (s *DamageTrees) Update(world *ecs.World) {
 	}
 
 	rng := rand.New(s.randRes.Get())
+	grid := s.gridRes.Get()
 
-	q := s.filterDamaged.Query()
-	for q.NextTable() {
-		entities := q.Entities()
-		for _, e := range entities {
+	qd := s.filterDamaged.Query()
+	for qd.NextTable() {
+		positions := qd.GetColumns()
+		for i := range positions {
 			if rng.Float64() < s.RemovalProbability {
-				s.toRemove = append(s.toRemove, e)
+				s.toRemove = append(s.toRemove, positions[i])
 			}
 		}
 	}
 
-	for _, e := range s.toRemove {
+	for i := range s.toRemove {
+		pos := &s.toRemove[i]
+		e := grid.Get(pos.X, pos.Y)
+
 		world.RemoveEntity(e)
+		grid.Set(pos.X, pos.Y, ecs.Entity{})
 	}
 	s.toRemove = s.toRemove[:0]
 
-	q = s.filter.Query()
+	q := s.filter.Query()
 	for q.NextTable() {
 		entities := q.Entities()
 		for _, e := range entities {
