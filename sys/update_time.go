@@ -23,7 +23,7 @@ func (s *UpdateTime) Initialize(world *ecs.World) {
 }
 
 // Update the system.
-func (s *UpdateTime) Update(world *ecs.World) {
+func (s *UpdateTime) Update(_ *ecs.World) {
 	tick := int(s.tickRes.Get().Tick)
 	s.time.Tick = tick
 	s.time.TickOfYear = tick % s.WeeksPerYear
