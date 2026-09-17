@@ -7,10 +7,8 @@ import (
 
 // TreeDamage reports the share of damaged trees.
 type TreeDamage struct {
-	total           *ecs.Filter0
-	damaged         *ecs.Filter0
-	infected        *ecs.Filter0
-	damagedInfected *ecs.Filter0
+	total   *ecs.Filter0
+	damaged *ecs.Filter0
 
 	result []float64
 }
