@@ -15,13 +15,13 @@ type RandomInfection struct {
 	CellX, CellY    int
 
 	filter  *ecs.Filter2[comp.Position, comp.InCell]
-	mapper  *ecs.Map1[comp.NematodeInfected]
+	mapper  *ecs.Map1[comp.Infected]
 	tickRes ecs.Resource[resource.Tick]
 }
 
 // Initialize the system.
 func (s *RandomInfection) Initialize(world *ecs.World) {
-	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged](), ecs.C[comp.NematodeInfected]())
+	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged](), ecs.C[comp.Infected]())
 	s.mapper = s.mapper.New(world)
 	s.tickRes = s.tickRes.New(world)
 }
@@ -48,7 +48,7 @@ func (s *RandomInfection) Update(world *ecs.World) {
 
 	util.Shuffle(rng, toInfect)
 	for i := range min(len(toInfect), s.NumTrees) {
-		s.mapper.Add(toInfect[i], &comp.NematodeInfected{InfectionTick: tick})
+		s.mapper.Add(toInfect[i], &comp.Infected{InfectionTick: tick})
 	}
 }
 

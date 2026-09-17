@@ -10,7 +10,7 @@ import (
 type DiseaseCourse struct {
 	TicksToDamage int
 
-	filter   *ecs.Filter1[comp.NematodeInfected]
+	filter   *ecs.Filter1[comp.Infected]
 	mapper   *ecs.Map1[comp.Damaged]
 	ticksRes ecs.Resource[resource.Tick]
 

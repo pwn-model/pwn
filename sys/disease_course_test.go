@@ -16,15 +16,15 @@ func TestDiseaseCourse(t *testing.T) {
 	s := DiseaseCourse{TicksToDamage: 5}
 	s.Initialize(a.World)
 
-	infected := ecs.NewMap1[comp.NematodeInfected](a.World)
+	infected := ecs.NewMap1[comp.Infected](a.World)
 	damaged := ecs.NewMap1[comp.Damaged](a.World)
 
 	// Elapsed time (tick - InfectionTick) exceeds TicksToDamage.
-	longInfected := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0})
+	longInfected := infected.NewEntity(&comp.Infected{InfectionTick: 0})
 	// Elapsed time equals TicksToDamage exactly (inclusive boundary).
-	atThreshold := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 5})
+	atThreshold := infected.NewEntity(&comp.Infected{InfectionTick: 5})
 	// Elapsed time is below TicksToDamage.
-	recentlyInfected := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 8})
+	recentlyInfected := infected.NewEntity(&comp.Infected{InfectionTick: 8})
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 	tick.Tick = 10
@@ -42,10 +42,10 @@ func TestDiseaseCourseSkipsAlreadyDamaged(t *testing.T) {
 	s := DiseaseCourse{TicksToDamage: 5}
 	s.Initialize(a.World)
 
-	infected := ecs.NewMap2[comp.NematodeInfected, comp.Damaged](a.World)
+	infected := ecs.NewMap2[comp.Infected, comp.Damaged](a.World)
 	// Elapsed time exceeds TicksToDamage, so this entity would be eligible
 	// for damage if it weren't already damaged.
-	entity := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0}, &comp.Damaged{})
+	entity := infected.NewEntity(&comp.Infected{InfectionTick: 0}, &comp.Damaged{})
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 	tick.Tick = 10
@@ -64,8 +64,8 @@ func TestDiseaseCourseIdempotentAcrossTicks(t *testing.T) {
 	s := DiseaseCourse{TicksToDamage: 0}
 	s.Initialize(a.World)
 
-	infected := ecs.NewMap1[comp.NematodeInfected](a.World)
-	entity := infected.NewEntity(&comp.NematodeInfected{InfectionTick: 0})
+	infected := ecs.NewMap1[comp.Infected](a.World)
+	entity := infected.NewEntity(&comp.Infected{InfectionTick: 0})
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 
