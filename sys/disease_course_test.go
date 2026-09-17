@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/mlange-42/ark-tools/app"
-	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/res"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,8 +26,8 @@ func TestDiseaseCourse(t *testing.T) {
 	// Elapsed time is below TicksToDamage.
 	recentlyInfected := infected.NewEntity(&comp.Infected{InfectionTick: 8})
 
-	tick := ecs.GetResource[resource.Tick](a.World)
-	tick.Tick = 10
+	time := res.Time{Tick: 10}
+	ecs.AddResource(a.World, &time)
 
 	s.Update(a.World)
 
@@ -47,8 +47,8 @@ func TestDiseaseCourseSkipsAlreadyDamaged(t *testing.T) {
 	// for damage if it weren't already damaged.
 	entity := infected.NewEntity(&comp.Infected{InfectionTick: 0}, &comp.Damaged{})
 
-	tick := ecs.GetResource[resource.Tick](a.World)
-	tick.Tick = 10
+	time := res.Time{Tick: 10}
+	ecs.AddResource(a.World, &time)
 
 	// Must not panic: entities already carrying comp.Damaged are excluded
 	// by the system's filter, so Update must not try to add it again.
@@ -67,9 +67,9 @@ func TestDiseaseCourseIdempotentAcrossTicks(t *testing.T) {
 	infected := ecs.NewMap1[comp.Infected](a.World)
 	entity := infected.NewEntity(&comp.Infected{InfectionTick: 0})
 
-	tick := ecs.GetResource[resource.Tick](a.World)
+	time := res.Time{Tick: 0}
+	ecs.AddResource(a.World, &time)
 
-	tick.Tick = 0
 	s.Update(a.World)
 
 	damaged := ecs.NewMap1[comp.Damaged](a.World)
@@ -77,6 +77,6 @@ func TestDiseaseCourseIdempotentAcrossTicks(t *testing.T) {
 
 	// A later Update must not try to add comp.Damaged again to an
 	// already-damaged entity.
-	tick.Tick = 1
+	time.Tick = 1
 	assert.NotPanics(t, func() { s.Update(a.World) })
 }

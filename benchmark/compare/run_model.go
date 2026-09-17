@@ -2,7 +2,6 @@ package main
 
 import (
 	"testing"
-	"time"
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/resource"
@@ -14,21 +13,21 @@ import (
 
 func setupAndRun(b *testing.B) {
 	for b.Loop() {
-		app := setup(1000, 1000, 100)
+		app := setup(1000, 1000, 520)
 		app.Run()
 	}
 }
 
 func setupOnly(b *testing.B) {
 	for b.Loop() {
-		_ = setup(1000, 1000, 100)
+		_ = setup(1000, 1000, 520)
 	}
 }
 
 func runOnly(b *testing.B) {
 	for b.Loop() {
 		b.StopTimer()
-		app := setup(1000, 1000, 100)
+		app := setup(1000, 1000, 520)
 		b.StartTimer()
 		app.Run()
 	}
@@ -40,7 +39,7 @@ func setup(width, height, ticks int) *app.App {
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
-	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
+	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
 		Width:      width,
@@ -57,6 +56,9 @@ func setup(width, height, ticks int) *app.App {
 	})
 
 	// Systems
+	app.AddSystem(&sys.UpdateTime{
+		TicksPerYear: 52,
+	})
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
@@ -65,6 +67,11 @@ func setup(width, height, ticks int) *app.App {
 		NumTrees:        100,
 		CellX:           10,
 		CellY:           10,
+	})
+	app.AddSystem(&sys.DamageTrees{
+		TickOfYear:         35,
+		DamageProbability:  0.01,
+		RemovalProbability: 0.333,
 	})
 
 	// Stop criterion

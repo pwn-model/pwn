@@ -1,16 +1,18 @@
 package main
 
 import (
-	"time"
+	"fmt"
 
+	"github.com/mlange-42/ark-pixel/plot"
+	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
-	"github.com/mlange-42/ark-tools/reporter"
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/obs"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
+	"github.com/pwn-model/pwn/util"
 )
 
 func main() {
@@ -19,12 +21,12 @@ func main() {
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
-	rnd.Source = res.NewXoshiro256pp(uint64(time.Now().UnixNano()))
+	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
-		Width:      1000,
-		Height:     1000,
-		Resolution: 50,
+		Width:      120,
+		Height:     120,
+		Resolution: 20,
 	}
 	ecs.AddResource(app.World, &worldSize)
 
@@ -36,24 +38,39 @@ func main() {
 	})
 
 	// Systems
+	app.AddSystem(&sys.UpdateTime{
+		TicksPerYear: 52,
+	})
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
 	app.AddSystem(&sys.RandomInfection{
 		TickOfInfection: 0,
 		NumTrees:        100,
-		CellX:           10,
-		CellY:           10,
+		CellX:           2,
+		CellY:           2,
+	})
+	app.AddSystem(&sys.DamageTrees{
+		TickOfYear:         35,
+		DamageProbability:  0.01,
+		RemovalProbability: 0.333,
 	})
 
 	// Observers
-	app.AddSystem(&reporter.CSV{
-		Observer: &obs.TreePopulationObserver{},
-		File:     "out/tree_pop.csv",
-	})
+	// app.AddUISystem((&window.Window{}).
+	// 	With(&plot.TimeSeries{
+	// 		Observer: &obs.TreePopulation{},
+	// 	}))
+
+	app.AddUISystem((&window.Window{}).
+		With(&plot.TimeSeries{
+			Observer: &obs.TreeDamage{},
+		}))
 
 	// Stop criterion
-	app.AddSystem(&system.FixedTermination{Steps: 100})
+	app.AddSystem(&system.FixedTermination{Steps: 520})
 
-	app.Run()
+	window.Run(app)
+
+	fmt.Println(util.TreesToString(app.World))
 }
