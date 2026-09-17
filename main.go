@@ -6,7 +6,6 @@ import (
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
-	"github.com/mlange-42/ark-tools/reporter"
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
@@ -50,12 +49,17 @@ func main() {
 		CellX:           2,
 		CellY:           2,
 	})
+	app.AddSystem(&sys.DamageTrees{
+		TickOfYear:         35,
+		DamageProbability:  0.01,
+		RemovalProbability: 0.333,
+	})
 
 	// Observers
-	app.AddSystem(&reporter.CSV{
-		Observer: &obs.TreePopulation{},
-		File:     "out/tree_pop.csv",
-	})
+	app.AddUISystem((&window.Window{}).
+		With(&plot.TimeSeries{
+			Observer: &obs.TreePopulation{},
+		}))
 
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{

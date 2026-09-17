@@ -69,6 +69,11 @@ func setup(width, height, ticks int) *app.App {
 		CellX:           10,
 		CellY:           10,
 	})
+	app.AddSystem(&sys.DamageTrees{
+		TickOfYear:         35,
+		DamageProbability:  0.01,
+		RemovalProbability: 0.333,
+	})
 
 	// Stop criterion
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
