@@ -10,6 +10,7 @@ import (
 	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/obs"
+	"github.com/pwn-model/pwn/obs/maps"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
 	"github.com/pwn-model/pwn/util"
@@ -17,7 +18,7 @@ import (
 
 func main() {
 	app := app.New()
-	app.TPS = 0
+	app.TPS = 30
 
 	// Resources
 	rnd := ecs.GetResource[resource.Rand](app.World)
@@ -66,6 +67,9 @@ func main() {
 		With(&plot.TimeSeries{
 			Observer: &obs.TreeDamage{},
 		}))
+
+	app.AddUISystem((&window.Window{}).
+		With(&maps.Trees{}))
 
 	// Stop criterion
 	app.AddSystem(&system.FixedTermination{Steps: 520})
