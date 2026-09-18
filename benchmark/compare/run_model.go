@@ -74,6 +74,13 @@ func setup(width, height, ticks int) *app.App {
 		DamageProbability:  0.01,
 		RemovalProbability: 0.333,
 	})
+	app.AddSystem(&sys.Colonization{
+		TickOfYear:     20,
+		KernelScale:    1.0,
+		KernelRadius:   5,
+		BeetlesPerTree: 5,
+		TreesPerBeetle: 1,
+	})
 
 	// Stop criterion
 	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})

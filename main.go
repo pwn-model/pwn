@@ -57,8 +57,16 @@ func main() {
 		DamageProbability:  0.01,
 		RemovalProbability: 0.333,
 	})
+	app.AddSystem(&sys.Colonization{
+		TickOfYear:     20,
+		KernelScale:    1.0,
+		KernelRadius:   5,
+		BeetlesPerTree: 5,
+		TreesPerBeetle: 1,
+	})
 
 	// Observers
+
 	// app.AddUISystem((&window.Window{}).
 	// 	With(&plot.TimeSeries{
 	// 		Observer: &obs.TreePopulation{},

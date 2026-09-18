@@ -34,3 +34,10 @@ func (g *Grid[T]) Get(x, y int) T {
 func (g *Grid[T]) Set(x, y int, e T) {
 	g.values[y+g.height*x] = e
 }
+
+// Fill the grid with the given value.
+func (g *Grid[T]) Fill(v T) {
+	for i := range g.values {
+		g.values[i] = v
+	}
+}
