@@ -190,8 +190,8 @@ func (s *Colonization) Update(_ *ecs.World) {
 func (s *Colonization) calcArrivals() {
 	w, h := s.density.Width(), s.density.Height()
 
-	for x := 0; x < w; x++ {
-		for y := 0; y < h; y++ {
+	for x := range w {
+		for y := range h {
 			v := s.density.Get(x, y)
 			if v == 0 {
 				continue
@@ -228,8 +228,8 @@ func (s *Colonization) calcArrivals() {
 func (s *Colonization) calcProbability() {
 	w, h := s.arrivals.Width(), s.arrivals.Height()
 
-	for x := 0; x < w; x++ {
-		for y := 0; y < h; y++ {
+	for x := range w {
+		for y := range h {
 			m := s.susceptible.Get(x, y)
 			if m == 0 {
 				continue

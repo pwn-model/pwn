@@ -64,8 +64,8 @@ func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 	s.calcArrivals()
 
 	total := 0.0
-	for x := 0; x < s.arrivals.Width(); x++ {
-		for y := 0; y < s.arrivals.Height(); y++ {
+	for x := range s.arrivals.Width() {
+		for y := range s.arrivals.Height() {
 			total += s.arrivals.Get(x, y)
 		}
 	}
