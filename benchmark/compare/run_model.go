@@ -53,6 +53,7 @@ func setup(width, height, ticks int) *app.App {
 	app.AddSystem(&sys.InitTrees{
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
+		BeetlePrevalence: 0.2,
 	})
 
 	// Systems
@@ -72,6 +73,13 @@ func setup(width, height, ticks int) *app.App {
 		TickOfYear:         35,
 		DamageProbability:  0.01,
 		RemovalProbability: 0.333,
+	})
+	app.AddSystem(&sys.Colonization{
+		TickOfYear:     20,
+		KernelScale:    1.0,
+		KernelRadius:   5,
+		BeetlesPerTree: 5,
+		TreesPerBeetle: 1,
 	})
 
 	// Stop criterion

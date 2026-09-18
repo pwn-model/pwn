@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -13,7 +11,6 @@ import (
 	"github.com/pwn-model/pwn/obs/maps"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
-	"github.com/pwn-model/pwn/util"
 )
 
 func main() {
@@ -25,9 +22,9 @@ func main() {
 	rnd.Source = res.NewXoshiro256pp(1)
 
 	worldSize := res.WorldSize{
-		Width:      120,
-		Height:     120,
-		Resolution: 20,
+		Width:      400,
+		Height:     300,
+		Resolution: 50,
 	}
 	ecs.AddResource(app.World, &worldSize)
 
@@ -36,6 +33,7 @@ func main() {
 	app.AddSystem(&sys.InitTrees{
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
+		BeetlePrevalence: 0.2,
 	})
 
 	// Systems
@@ -56,8 +54,16 @@ func main() {
 		DamageProbability:  0.01,
 		RemovalProbability: 0.333,
 	})
+	app.AddSystem(&sys.Colonization{
+		TickOfYear:     20,
+		KernelScale:    1.0,
+		KernelRadius:   5,
+		BeetlesPerTree: 5,
+		TreesPerBeetle: 1,
+	})
 
 	// Observers
+
 	// app.AddUISystem((&window.Window{}).
 	// 	With(&plot.TimeSeries{
 	// 		Observer: &obs.TreePopulation{},
@@ -65,16 +71,16 @@ func main() {
 
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{
-			Observer: &obs.TreeDamage{},
+			Observer: &obs.TreeColonization{},
 		}))
 
 	app.AddUISystem((&window.Window{}).
 		With(&maps.Trees{}))
 
 	// Stop criterion
-	app.AddSystem(&system.FixedTermination{Steps: 520})
+	app.AddSystem(&system.FixedTermination{Steps: 5200})
 
 	window.Run(app)
 
-	fmt.Println(util.TreesToString(app.World))
+	//fmt.Println(util.TreesToString(app.World))
 }

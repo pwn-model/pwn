@@ -18,7 +18,7 @@ func TestInitGrids(t *testing.T) {
 	s := InitGrids{}
 	s.Initialize(app.World)
 
-	trees := ecs.GetResource[res.EntityGrid](app.World)
+	trees := ecs.GetResource[res.TreeGrid](app.World)
 	assert.Equal(t, ws.Width, trees.Width())
 	assert.Equal(t, ws.Height, trees.Height())
 

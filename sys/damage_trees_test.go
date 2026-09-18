@@ -76,7 +76,7 @@ func TestDamageTreesRemovesAllWithProbabilityOne(t *testing.T) {
 	a := app.New()
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 3})
 
-	grid := res.NewEntityGrid(5, 1)
+	grid := res.TreeGrid{Grid: res.NewGrid[ecs.Entity](5, 1)}
 	ecs.AddResource(a.World, &grid)
 
 	s := DamageTrees{TickOfYear: 3, DamageProbability: 0, RemovalProbability: 1}
