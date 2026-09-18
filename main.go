@@ -66,7 +66,7 @@ func main() {
 
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{
-			Observer: &obs.TreeDamage{},
+			Observer: &obs.TreeColonization{},
 		}))
 
 	app.AddUISystem((&window.Window{}).
