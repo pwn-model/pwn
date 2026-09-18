@@ -34,8 +34,8 @@ func (s *Trees) Initialize(world *ecs.World, _ *opengl.Window) {
 
 	s.grid = s.grid.New(world)
 	grid := s.grid.Get()
-	s.image = image.NewRGBA(image.Rect(0, 0, grid.Width(), grid.Width()))
-	s.canvas = opengl.NewCanvas(pixel.R(0, 0, float64(grid.Width()), float64(grid.Width())))
+	s.image = image.NewRGBA(image.Rect(0, 0, grid.Width(), grid.Height()))
+	s.canvas = opengl.NewCanvas(pixel.R(0, 0, float64(grid.Width()), float64(grid.Height())))
 }
 
 // Update the drawer.
