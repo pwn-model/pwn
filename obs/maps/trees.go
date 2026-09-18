@@ -41,7 +41,7 @@ func (s *Trees) Update(_ *ecs.World) {}
 func (s *Trees) UpdateInputs(_ *ecs.World, _ *opengl.Window) {}
 
 // Draw the drawer's content.
-func (s *Trees) Draw(world *ecs.World, win *opengl.Window) {
+func (s *Trees) Draw(_ *ecs.World, win *opengl.Window) {
 	grid := s.grid.Get()
 	draw.Draw(s.image, s.image.Bounds(), &image.Uniform{color.Black}, image.Point{}, draw.Src)
 
