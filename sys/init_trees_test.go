@@ -92,3 +92,54 @@ func TestInitTreesDamaged(t *testing.T) {
 	expected := float64(total) * s.DamagePrevalence
 	assert.InDelta(t, expected, float64(damagedCount), expected*0.25)
 }
+
+func TestInitTreesColonized(t *testing.T) {
+	app := app.New()
+
+	ws := res.WorldSize{Width: 100, Height: 50, Resolution: 10}
+	ecs.AddResource(app.World, &ws)
+
+	gs := InitGrids{}
+	gs.Initialize(app.World)
+
+	s := InitTrees{TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
+	s.Initialize(app.World)
+
+	grid := ecs.GetResource[res.EntityGrid](app.World)
+
+	totalQuery := ecs.NewFilter1[comp.Position](app.World).Query()
+	total := totalQuery.Count()
+	totalQuery.Close()
+
+	// Every colonized tree must also be marked damaged: the count of trees
+	// with both components must match the count of trees with Colonized alone.
+	allColonizedQuery := ecs.NewFilter2[comp.Position, comp.Colonized](app.World).Query()
+	allColonizedCount := allColonizedQuery.Count()
+	allColonizedQuery.Close()
+
+	colonizedQuery := ecs.NewFilter3[comp.Position, comp.Damaged, comp.Colonized](app.World).Query()
+	colonizedCount := 0
+	for colonizedQuery.Next() {
+		pos, _, _ := colonizedQuery.Get()
+		entity := colonizedQuery.Entity()
+
+		// The entity grid must point to the entity actually holding this position,
+		// not to a stale duplicate from another coarse cell.
+		assert.Equal(t, entity, grid.Get(pos.X, pos.Y))
+
+		colonizedCount++
+	}
+	colonizedQuery.Close()
+
+	assert.Equal(t, allColonizedCount, colonizedCount)
+
+	expectedColonized := float64(total) * s.DamagePrevalence * s.BeetlePrevalence
+	assert.InDelta(t, expectedColonized, float64(colonizedCount), expectedColonized*0.25)
+
+	damagedOnlyQuery := ecs.NewFilter2[comp.Position, comp.Damaged](app.World).Without(ecs.C[comp.Colonized]()).Query()
+	damagedOnlyCount := damagedOnlyQuery.Count()
+	damagedOnlyQuery.Close()
+
+	expectedDamagedOnly := float64(total) * s.DamagePrevalence * (1 - s.BeetlePrevalence)
+	assert.InDelta(t, expectedDamagedOnly, float64(damagedOnlyCount), expectedDamagedOnly*0.25)
+}

@@ -53,6 +53,7 @@ func setup(width, height, ticks int) *app.App {
 	app.AddSystem(&sys.InitTrees{
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
+		BeetlePrevalence: 0.2,
 	})
 
 	// Systems

@@ -20,3 +20,6 @@ type Damaged struct{}
 type Infected struct {
 	InfectionTick int
 }
+
+// Colonized marks a tree as colonized by beetles (eggs, larvae or pupae).
+type Colonized struct{}

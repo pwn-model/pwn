@@ -15,9 +15,10 @@ import (
 
 // Trees visualizes the trees grid as a color map.
 type Trees struct {
-	treeFilter     *ecs.Filter1[comp.Position]
-	damagedFilter  *ecs.Filter1[comp.Position]
-	infectedFilter *ecs.Filter1[comp.Position]
+	treeFilter      *ecs.Filter1[comp.Position]
+	damagedFilter   *ecs.Filter1[comp.Position]
+	colonizedFilter *ecs.Filter1[comp.Position]
+	infectedFilter  *ecs.Filter1[comp.Position]
 
 	grid   ecs.Resource[res.EntityGrid]
 	image  *image.RGBA
@@ -27,7 +28,8 @@ type Trees struct {
 // Initialize the drawer.
 func (s *Trees) Initialize(world *ecs.World, _ *opengl.Window) {
 	s.treeFilter = s.treeFilter.New(world).Without(ecs.C[comp.Damaged]())
-	s.damagedFilter = s.damagedFilter.New(world).With(ecs.C[comp.Damaged]())
+	s.damagedFilter = s.damagedFilter.New(world).With(ecs.C[comp.Damaged]()).Without(ecs.C[comp.Colonized]())
+	s.colonizedFilter = s.damagedFilter.New(world).With(ecs.C[comp.Colonized]())
 	s.infectedFilter = s.infectedFilter.New(world).With(ecs.C[comp.Infected]())
 
 	s.grid = s.grid.New(world)
@@ -47,7 +49,7 @@ func (s *Trees) Draw(_ *ecs.World, win *opengl.Window) {
 	grid := s.grid.Get()
 	draw.Draw(s.image, s.image.Bounds(), &image.Uniform{color.Black}, image.Point{}, draw.Src)
 
-	tree, damaged, infected := color.RGBA{0, 200, 0, 255}, color.RGBA{0, 0, 200, 255}, color.RGBA{200, 0, 0, 255}
+	tree, damaged, colonized, infected := color.RGBA{0, 200, 0, 255}, color.RGBA{0, 0, 160, 255}, color.RGBA{200, 0, 200, 255}, color.RGBA{255, 0, 0, 160}
 
 	q := s.treeFilter.Query()
 	for q.NextTable() {
@@ -64,6 +66,15 @@ func (s *Trees) Draw(_ *ecs.World, win *opengl.Window) {
 		for i := range positions {
 			pos := &positions[i]
 			s.image.Set(pos.X, pos.Y, damaged)
+		}
+	}
+
+	q = s.colonizedFilter.Query()
+	for q.NextTable() {
+		positions := q.GetColumns()
+		for i := range positions {
+			pos := &positions[i]
+			s.image.Set(pos.X, pos.Y, colonized)
 		}
 	}
 
