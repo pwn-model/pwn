@@ -136,6 +136,9 @@ func (s *Colonization) Update(_ *ecs.World) {
 		}
 	}
 
+	// The beetles that emerged from a source tree have flown out to lay
+	// their eggs elsewhere, so the source tree empties out and becomes
+	// available for colonization again.
 	s.coloMapper.RemoveBatch(s.coloFilter.Batch(), nil)
 
 	qd := s.damagedFilter.Query()
