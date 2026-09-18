@@ -58,8 +58,8 @@ func main() {
 		TickOfYear:     20,
 		KernelScale:    1.0,
 		KernelRadius:   5,
-		BeetlesPerTree: 5,
-		TreesPerBeetle: 1,
+		BeetlesPerTree: 2.2,
+		TreesPerBeetle: 1.0,
 	})
 
 	// Observers
