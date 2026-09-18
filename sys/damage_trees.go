@@ -17,7 +17,7 @@ type DamageTrees struct {
 
 	timeRes       ecs.Resource[res.Time]
 	randRes       ecs.Resource[resource.Rand]
-	gridRes       ecs.Resource[res.EntityGrid]
+	gridRes       ecs.Resource[res.TreeGrid]
 	filter        *ecs.Filter0
 	filterDamaged *ecs.Filter1[comp.Position]
 

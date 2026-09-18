@@ -10,7 +10,7 @@ import (
 
 // TreesToString prints a tree grid.
 func TreesToString(world *ecs.World) string {
-	grid := ecs.GetResource[res.EntityGrid](world)
+	grid := ecs.GetResource[res.TreeGrid](world)
 	infMap := ecs.NewMap[comp.Infected](world)
 	dmgMap := ecs.NewMap[comp.Damaged](world)
 

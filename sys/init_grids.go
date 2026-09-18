@@ -10,7 +10,7 @@ import (
 
 // InitGrids system
 type InitGrids struct {
-	trees res.EntityGrid
+	trees res.TreeGrid
 	grid  res.SpaceGrid
 }
 
@@ -24,11 +24,13 @@ func (s *InitGrids) Initialize(world *ecs.World) {
 		))
 	}
 
-	s.trees = res.NewEntityGrid(ws.Width, ws.Height)
+	s.trees = res.TreeGrid{
+		Grid: res.NewGrid[ecs.Entity](ws.Width, ws.Height),
+	}
 	ecs.AddResource(world, &s.trees)
 
 	s.grid = res.SpaceGrid{
-		EntityGrid: res.NewEntityGrid(ws.Width/ws.Resolution, ws.Height/ws.Resolution),
+		Grid: res.NewGrid[ecs.Entity](ws.Width/ws.Resolution, ws.Height/ws.Resolution),
 	}
 
 	builder := ecs.NewMap1[comp.GridCoords](world)

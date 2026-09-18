@@ -21,7 +21,7 @@ type InitTrees struct {
 func (s *InitTrees) Initialize(world *ecs.World) {
 	ws := ecs.GetResource[res.WorldSize](world)
 	grid := ecs.GetResource[res.SpaceGrid](world)
-	trees := ecs.GetResource[res.EntityGrid](world)
+	trees := ecs.GetResource[res.TreeGrid](world)
 	rand := rand.New(ecs.GetResource[resource.Rand](world))
 
 	builderDefault := ecs.NewMap2[comp.Position, comp.InCell](world)

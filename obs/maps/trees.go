@@ -20,7 +20,7 @@ type Trees struct {
 	colonizedFilter *ecs.Filter1[comp.Position]
 	infectedFilter  *ecs.Filter1[comp.Position]
 
-	grid   ecs.Resource[res.EntityGrid]
+	grid   ecs.Resource[res.TreeGrid]
 	image  *image.RGBA
 	canvas *opengl.Canvas
 }

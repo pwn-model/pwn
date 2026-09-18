@@ -22,7 +22,7 @@ func TestInitTrees(t *testing.T) {
 	s := InitTrees{TreeProbability: 0.9}
 	s.Initialize(app.World)
 
-	grid := ecs.GetResource[res.EntityGrid](app.World)
+	grid := ecs.GetResource[res.TreeGrid](app.World)
 	space := ecs.GetResource[res.SpaceGrid](app.World)
 
 	q := ecs.NewFilter1[comp.Position](app.World).Query()
@@ -61,7 +61,7 @@ func TestInitTreesDamaged(t *testing.T) {
 	s := InitTrees{TreeProbability: 1.0, DamagePrevalence: 0.2}
 	s.Initialize(app.World)
 
-	grid := ecs.GetResource[res.EntityGrid](app.World)
+	grid := ecs.GetResource[res.TreeGrid](app.World)
 	space := ecs.GetResource[res.SpaceGrid](app.World)
 	inCell := ecs.NewMap1[comp.InCell](app.World)
 
@@ -105,7 +105,7 @@ func TestInitTreesColonized(t *testing.T) {
 	s := InitTrees{TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
 	s.Initialize(app.World)
 
-	grid := ecs.GetResource[res.EntityGrid](app.World)
+	grid := ecs.GetResource[res.TreeGrid](app.World)
 
 	totalQuery := ecs.NewFilter1[comp.Position](app.World).Query()
 	total := totalQuery.Count()
