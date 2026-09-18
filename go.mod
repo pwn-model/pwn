@@ -3,6 +3,7 @@ module github.com/pwn-model/pwn
 go 1.27.1
 
 require (
+	github.com/gopxl/pixel/v2 v2.1.0
 	github.com/mlange-42/ark v0.8.3
 	github.com/mlange-42/ark-pixel v0.1.6
 	github.com/mlange-42/ark-tools v0.3.1
@@ -22,7 +23,6 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/gopxl/glhf/v2 v2.1.0 // indirect
 	github.com/gopxl/mainthread/v2 v2.1.1 // indirect
-	github.com/gopxl/pixel/v2 v2.1.0 // indirect
 	github.com/mazznoer/colorgrad v0.11.1 // indirect
 	github.com/mazznoer/csscolorparser v0.1.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
