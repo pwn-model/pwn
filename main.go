@@ -64,14 +64,14 @@ func main() {
 
 	// Observers
 
-	// app.AddUISystem((&window.Window{}).
-	// 	With(&plot.TimeSeries{
-	// 		Observer: &obs.TreePopulation{},
-	// 	}))
-
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{
 			Observer: &obs.TreeColonization{},
+			Labels: plot.Labels{
+				Title: "Tree colonization",
+				X:     "time [weeks]",
+				Y:     "proportion colonized",
+			},
 		}))
 
 	app.AddUISystem((&window.Window{}).
