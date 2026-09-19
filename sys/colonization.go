@@ -8,16 +8,20 @@ import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 // Colonization is the background beetle spread process.
 type Colonization struct {
+	// TickOfYear when colonization takes place.
 	TickOfYear int
-
-	// KernelRadius is the dispersal kernel's cutoff radius, in space-grid cells.
-	KernelRadius int
-	// KernelScale is the dispersal kernel's decay length, in space-grid cells.
+	// CellSize of the dispersal grid, in meters.
+	CellSize int
+	// KernelScale is the dispersal kernel's decay length, in meters.
 	KernelScale float64
+	// KernelRadius is the dispersal kernel's cutoff radius, in meters.
+	// Rounded up to full cells.
+	KernelRadius int
 	// BeetlesPerTree is the fixed number of beetles emerging from each
 	// colonized tree per year.
 	BeetlesPerTree float64
@@ -31,9 +35,8 @@ type Colonization struct {
 
 	coloMapper *ecs.Map1[comp.Colonized]
 
-	timeRes  ecs.Resource[res.Time]
-	worldRes ecs.Resource[res.WorldSize]
-	randRes  ecs.Resource[resource.Rand]
+	timeRes ecs.Resource[res.Time]
+	randRes ecs.Resource[resource.Rand]
 
 	colonizedMap *ecs.Map1[comp.Colonized]
 
@@ -45,6 +48,10 @@ type Colonization struct {
 	kernel []kernelOffset
 
 	toColonize []ecs.Entity
+
+	// unitsPerCell is the number of tree-grid units per dispersal-grid
+	// cell, i.e. CellSize expressed in the world's base cell-size units.
+	unitsPerCell int
 }
 
 // kernelOffset is one pre-computed weighted offset of a dispersal kernel,
@@ -95,18 +102,23 @@ func (s *Colonization) Initialize(world *ecs.World) {
 	s.coloMapper = s.coloMapper.New(world)
 
 	s.timeRes = s.timeRes.New(world)
-	s.worldRes = s.worldRes.New(world)
 	s.randRes = s.randRes.New(world)
 
 	s.colonizedMap = s.colonizedMap.New(world)
 
-	grid := ecs.GetResource[res.SpaceGrid](world)
-	s.density = res.NewGrid[int](grid.Width(), grid.Height(), grid.CellSize())
-	s.susceptible = res.NewGrid[int](grid.Width(), grid.Height(), grid.CellSize())
-	s.arrivals = res.NewGrid[float64](grid.Width(), grid.Height(), grid.CellSize())
-	s.probability = res.NewGrid[float64](grid.Width(), grid.Height(), grid.CellSize())
+	ws := ecs.GetResource[res.WorldSize](world)
+	if s.CellSize%ws.CellSize() != 0 {
+		panic("CellSize of the colonization submodel must be a multiple of the world's base cell size.")
+	}
+	s.unitsPerCell = s.CellSize / ws.CellSize()
 
-	s.kernel = buildKernel(s.KernelRadius, s.KernelScale)
+	width, height := util.CeilDiv(ws.Width(), s.unitsPerCell), util.CeilDiv(ws.Height(), s.unitsPerCell)
+	s.density = res.NewGrid[int](width, height, s.CellSize)
+	s.susceptible = res.NewGrid[int](width, height, s.CellSize)
+	s.arrivals = res.NewGrid[float64](width, height, s.CellSize)
+	s.probability = res.NewGrid[float64](width, height, s.CellSize)
+
+	s.kernel = buildKernel(util.CeilDiv(s.KernelRadius, s.CellSize), s.KernelScale/float64(s.CellSize))
 }
 
 // Update the system.
@@ -117,7 +129,6 @@ func (s *Colonization) Update(_ *ecs.World) {
 		return
 	}
 
-	ws := s.worldRes.Get()
 	rng := rand.New(s.randRes.Get())
 
 	s.density.Fill(0)
@@ -130,7 +141,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 		positions := q.GetColumns()
 		for i := range positions {
 			pos := positions[i]
-			x, y := ws.ToCoords(pos.X, pos.Y)
+			x, y := s.toCoords(pos.X, pos.Y)
 			v := s.density.Get(x, y)
 			s.density.Set(x, y, v+1)
 		}
@@ -146,7 +157,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 		positions := qd.GetColumns()
 		for i := range positions {
 			pos := positions[i]
-			x, y := ws.ToCoords(pos.X, pos.Y)
+			x, y := s.toCoords(pos.X, pos.Y)
 			s.susceptible.Set(x, y, s.susceptible.Get(x, y)+1)
 		}
 	}
@@ -160,7 +171,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 		positions := q.GetColumns()
 		for i := range positions {
 			pos := positions[i]
-			x, y := ws.ToCoords(pos.X, pos.Y)
+			x, y := s.toCoords(pos.X, pos.Y)
 			p := s.probability.Get(x, y)
 			if rng.Float64() < p {
 				s.toColonize = append(s.toColonize, entities[i])
@@ -239,6 +250,11 @@ func (s *Colonization) calcProbability() {
 			s.probability.Set(x, y, p)
 		}
 	}
+}
+
+// toCoords calculates dispersal-grid coords from tree grid coords.
+func (s *Colonization) toCoords(x, y int) (int, int) {
+	return x / s.unitsPerCell, y / s.unitsPerCell
 }
 
 // Finalize the system.
