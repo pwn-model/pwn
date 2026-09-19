@@ -101,10 +101,10 @@ func (s *Colonization) Initialize(world *ecs.World) {
 	s.colonizedMap = s.colonizedMap.New(world)
 
 	grid := ecs.GetResource[res.SpaceGrid](world)
-	s.density = res.NewGrid[int](grid.Width(), grid.Height())
-	s.susceptible = res.NewGrid[int](grid.Width(), grid.Height())
-	s.arrivals = res.NewGrid[float64](grid.Width(), grid.Height())
-	s.probability = res.NewGrid[float64](grid.Width(), grid.Height())
+	s.density = res.NewGrid[int](grid.Width(), grid.Height(), grid.CellSize())
+	s.susceptible = res.NewGrid[int](grid.Width(), grid.Height(), grid.CellSize())
+	s.arrivals = res.NewGrid[float64](grid.Width(), grid.Height(), grid.CellSize())
+	s.probability = res.NewGrid[float64](grid.Width(), grid.Height(), grid.CellSize())
 
 	s.kernel = buildKernel(s.KernelRadius, s.KernelScale)
 }

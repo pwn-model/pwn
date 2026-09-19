@@ -21,11 +21,10 @@ func main() {
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(1)
 
-	worldSize := res.WorldSize{
-		Width:      400,
-		Height:     300,
-		Resolution: 50,
-	}
+	worldSize := res.NewWorldSize(
+		4000, 3000,
+		10, 500,
+	)
 	ecs.AddResource(app.World, &worldSize)
 
 	// Initialization

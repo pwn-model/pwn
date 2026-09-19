@@ -39,7 +39,7 @@ func (s *RandomInfection) Update(world *ecs.World) {
 	grid := ecs.GetResource[res.SpaceGrid](world)
 	cell := grid.Get(s.CellX, s.CellY)
 
-	toInfect := make([]ecs.Entity, 0, worldSize.Resolution*worldSize.Resolution)
+	toInfect := make([]ecs.Entity, 0, worldSize.Resolution()*worldSize.Resolution())
 
 	query := s.filter.Query(ecs.RelIdx(1, cell))
 	for query.NextTable() {

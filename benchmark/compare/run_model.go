@@ -13,21 +13,21 @@ import (
 
 func setupAndRun(b *testing.B) {
 	for b.Loop() {
-		app := setup(1000, 1000, 520)
+		app := setup(10000, 10000, 520)
 		app.Run()
 	}
 }
 
 func setupOnly(b *testing.B) {
 	for b.Loop() {
-		_ = setup(1000, 1000, 520)
+		_ = setup(10000, 10000, 520)
 	}
 }
 
 func runOnly(b *testing.B) {
 	for b.Loop() {
 		b.StopTimer()
-		app := setup(1000, 1000, 520)
+		app := setup(10000, 10000, 520)
 		b.StartTimer()
 		app.Run()
 	}
@@ -41,11 +41,7 @@ func setup(width, height, ticks int) *app.App {
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(1)
 
-	worldSize := res.WorldSize{
-		Width:      width,
-		Height:     height,
-		Resolution: 50,
-	}
+	worldSize := res.NewWorldSize(width, height, 10, 500)
 	ecs.AddResource(app.World, &worldSize)
 
 	// Initialization

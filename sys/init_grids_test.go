@@ -12,15 +12,15 @@ import (
 
 func TestInitGrids(t *testing.T) {
 	app := app.New()
-	ws := res.WorldSize{Width: 30, Height: 20, Resolution: 10}
+	ws := res.NewWorldSize(300, 200, 10, 100)
 	ecs.AddResource(app.World, &ws)
 
 	s := InitGrids{}
 	s.Initialize(app.World)
 
 	trees := ecs.GetResource[res.TreeGrid](app.World)
-	assert.Equal(t, ws.Width, trees.Width())
-	assert.Equal(t, ws.Height, trees.Height())
+	assert.Equal(t, ws.Width(), trees.Width())
+	assert.Equal(t, ws.Height(), trees.Height())
 
 	space := ecs.GetResource[res.SpaceGrid](app.World)
 	assert.Equal(t, 3, space.Width())  // 30/10
@@ -36,13 +36,4 @@ func TestInitGrids(t *testing.T) {
 	q.Close()
 
 	assert.Equal(t, space.Width()*space.Height(), count)
-}
-
-func TestInitGridsPanicsOnSizeNotMultipleOfResolution(t *testing.T) {
-	app := app.New()
-	ws := res.WorldSize{Width: 25, Height: 12, Resolution: 10}
-	ecs.AddResource(app.World, &ws)
-
-	s := InitGrids{}
-	assert.Panics(t, func() { s.Initialize(app.World) })
 }

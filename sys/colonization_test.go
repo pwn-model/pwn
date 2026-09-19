@@ -14,7 +14,8 @@ func setupColonizationWorld(t *testing.T, width, height, resolution int) *ecs.Wo
 	t.Helper()
 
 	a := app.New()
-	ecs.AddResource(a.World, &res.WorldSize{Width: width, Height: height, Resolution: resolution})
+	ws := res.NewWorldSize(width, height, 10, resolution)
+	ecs.AddResource(a.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(a.World)
@@ -52,7 +53,7 @@ func TestBuildKernelNormalizesWeights(t *testing.T) {
 }
 
 func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
-	world := setupColonizationWorld(t, 3, 3, 1)
+	world := setupColonizationWorld(t, 30, 30, 10)
 
 	s := Colonization{KernelRadius: 1, KernelScale: 1, BeetlesPerTree: 10}
 	s.Initialize(world)
@@ -80,7 +81,7 @@ func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 }
 
 func TestColonizationCalcProbabilityOccupancyFormula(t *testing.T) {
-	world := setupColonizationWorld(t, 3, 1, 1)
+	world := setupColonizationWorld(t, 30, 10, 10)
 
 	s := Colonization{TreesPerBeetle: 1}
 	s.Initialize(world)
@@ -107,7 +108,7 @@ func TestColonizationCalcProbabilityOccupancyFormula(t *testing.T) {
 }
 
 func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
-	world := setupColonizationWorld(t, 10, 10, 10)
+	world := setupColonizationWorld(t, 100, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 0})
 
 	s := Colonization{
@@ -133,7 +134,7 @@ func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
 }
 
 func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
-	world := setupColonizationWorld(t, 10, 10, 10)
+	world := setupColonizationWorld(t, 100, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 3})
 
 	// KernelRadius 0 keeps all beetles in the source's own cell, and the
@@ -167,7 +168,7 @@ func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
 }
 
 func TestColonizationNoColonizationWithoutSource(t *testing.T) {
-	world := setupColonizationWorld(t, 10, 10, 10)
+	world := setupColonizationWorld(t, 100, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 3})
 
 	s := Colonization{
