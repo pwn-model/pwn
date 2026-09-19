@@ -27,7 +27,7 @@ func (g *Grid[T]) Width() int { return g.width }
 // Height of the grid in cells.
 func (g *Grid[T]) Height() int { return g.height }
 
-// Cell size of the grid in meters.
+// CellSize of the grid in meters.
 func (g *Grid[T]) CellSize() int { return g.cellSize }
 
 // Get the tree entity at the given coordinates.
