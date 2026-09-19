@@ -16,7 +16,7 @@ func setupRandomInfectionWorld(t *testing.T) *ecs.World {
 	a := app.New()
 
 	// 2x2 coarse grid, 100 trees per coarse cell.
-	ws := res.WorldSize{Width: 20, Height: 20, Resolution: 10}
+	ws := res.NewWorldSize(200, 200, 10, 100)
 	ecs.AddResource(a.World, &ws)
 
 	gs := InitGrids{}
@@ -62,8 +62,8 @@ func TestRandomInfection(t *testing.T) {
 
 		assert.Equal(t, 3, inf.InfectionTick)
 		assert.Equal(t, target, inCell.GetRelation(entity, 0))
-		assert.Less(t, pos.X, ws.Resolution)
-		assert.Less(t, pos.Y, ws.Resolution)
+		assert.Less(t, pos.X, ws.Resolution())
+		assert.Less(t, pos.Y, ws.Resolution())
 		count++
 	}
 	posQuery.Close()
@@ -153,8 +153,8 @@ func TestRandomInfectionOnlyTargetsSpecifiedCell(t *testing.T) {
 	q := ecs.NewFilter2[comp.Position, comp.Infected](world).Query()
 	for q.Next() {
 		pos, _ := q.Get()
-		assert.GreaterOrEqual(t, pos.X, ws.Resolution)
-		assert.GreaterOrEqual(t, pos.Y, ws.Resolution)
+		assert.GreaterOrEqual(t, pos.X, ws.Resolution())
+		assert.GreaterOrEqual(t, pos.Y, ws.Resolution())
 	}
 	q.Close()
 }

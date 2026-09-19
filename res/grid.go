@@ -5,25 +5,30 @@ package res
 // Values are stored column-major (consecutive y for fixed x are contiguous),
 // so that column-wise iteration is cache-friendly for large grids.
 type Grid[T any] struct {
-	values []T
-	width  int
-	height int
+	values   []T
+	width    int
+	height   int
+	cellSize int
 }
 
 // NewGrid creates a new [Grid] of the given size.
-func NewGrid[T any](sx, sy int) Grid[T] {
+func NewGrid[T any](sx, sy, cellSize int) Grid[T] {
 	return Grid[T]{
-		values: make([]T, sx*sy),
-		width:  sx,
-		height: sy,
+		values:   make([]T, sx*sy),
+		width:    sx,
+		height:   sy,
+		cellSize: cellSize,
 	}
 }
 
-// Width of the grid.
+// Width of the grid in cells.
 func (g *Grid[T]) Width() int { return g.width }
 
-// Height of the grid.
+// Height of the grid in cells.
 func (g *Grid[T]) Height() int { return g.height }
+
+// CellSize of the grid in meters.
+func (g *Grid[T]) CellSize() int { return g.cellSize }
 
 // Get the tree entity at the given coordinates.
 func (g *Grid[T]) Get(x, y int) T {

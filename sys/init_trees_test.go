@@ -13,7 +13,7 @@ import (
 func TestInitTrees(t *testing.T) {
 	app := app.New()
 
-	ws := res.WorldSize{Width: 100, Height: 50, Resolution: 10}
+	ws := res.NewWorldSize(1000, 500, 10, 100)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
@@ -42,7 +42,7 @@ func TestInitTrees(t *testing.T) {
 
 	inCell := ecs.NewMap1[comp.InCell](app.World)
 	cell := inCell.GetRelation(entity, 0)
-	assert.Equal(t, space.Get(pos.X/ws.Resolution, pos.Y/ws.Resolution), cell)
+	assert.Equal(t, space.Get(pos.X/ws.Resolution(), pos.Y/ws.Resolution()), cell)
 
 	damagedQuery := ecs.NewFilter1[comp.Damaged](app.World).Query()
 	assert.Equal(t, 0, damagedQuery.Count())
@@ -52,7 +52,7 @@ func TestInitTrees(t *testing.T) {
 func TestInitTreesDamaged(t *testing.T) {
 	app := app.New()
 
-	ws := res.WorldSize{Width: 100, Height: 50, Resolution: 10}
+	ws := res.NewWorldSize(1000, 500, 10, 100)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
@@ -69,7 +69,7 @@ func TestInitTreesDamaged(t *testing.T) {
 	totalQuery := ecs.NewFilter1[comp.Position](app.World).Query()
 	total := totalQuery.Count()
 	totalQuery.Close()
-	assert.Equal(t, ws.Width*ws.Height, total)
+	assert.Equal(t, ws.Width()*ws.Height(), total)
 
 	damagedQuery := ecs.NewFilter2[comp.Position, comp.Damaged](app.World).Query()
 	damagedCount := 0
@@ -83,7 +83,7 @@ func TestInitTreesDamaged(t *testing.T) {
 
 		// The InCell relation must match the coarse cell the position actually falls into.
 		cell := inCell.GetRelation(entity, 0)
-		assert.Equal(t, space.Get(pos.X/ws.Resolution, pos.Y/ws.Resolution), cell)
+		assert.Equal(t, space.Get(pos.X/ws.Resolution(), pos.Y/ws.Resolution()), cell)
 
 		damagedCount++
 	}
@@ -96,7 +96,7 @@ func TestInitTreesDamaged(t *testing.T) {
 func TestInitTreesColonized(t *testing.T) {
 	app := app.New()
 
-	ws := res.WorldSize{Width: 100, Height: 50, Resolution: 10}
+	ws := res.NewWorldSize(1000, 500, 10, 100)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}

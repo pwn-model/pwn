@@ -1,8 +1,6 @@
 package sys
 
 import (
-	"fmt"
-
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/res"
@@ -17,20 +15,14 @@ type InitGrids struct {
 // Initialize the system.
 func (s *InitGrids) Initialize(world *ecs.World) {
 	ws := ecs.GetResource[res.WorldSize](world)
-	if ws.Width%ws.Resolution != 0 || ws.Height%ws.Resolution != 0 {
-		panic(fmt.Sprintf(
-			"world size (%d x %d) must be a multiple of the grid resolution (%d)",
-			ws.Width, ws.Height, ws.Resolution,
-		))
-	}
 
 	s.trees = res.TreeGrid{
-		Grid: res.NewGrid[ecs.Entity](ws.Width, ws.Height),
+		Grid: res.NewGrid[ecs.Entity](ws.Width(), ws.Height(), ws.CellSize()),
 	}
 	ecs.AddResource(world, &s.trees)
 
 	s.grid = res.SpaceGrid{
-		Grid: res.NewGrid[ecs.Entity](ws.Width/ws.Resolution, ws.Height/ws.Resolution),
+		Grid: res.NewGrid[ecs.Entity](ws.Width()/ws.Resolution(), ws.Height()/ws.Resolution(), ws.GridCellSize()),
 	}
 
 	builder := ecs.NewMap1[comp.GridCoords](world)

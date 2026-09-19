@@ -28,9 +28,9 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 	builderDamaged := ecs.NewMap3[comp.Position, comp.InCell, comp.Damaged](world)
 	builderColonized := ecs.NewMap4[comp.Position, comp.InCell, comp.Damaged, comp.Colonized](world)
 
-	cells := make([]comp.Position, 0, ws.Resolution*ws.Resolution)
-	damaged := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution*ws.Resolution)*s.DamagePrevalence*1.2)))
-	colonized := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution*ws.Resolution)*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
+	cells := make([]comp.Position, 0, ws.Resolution()*ws.Resolution())
+	damaged := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution()*ws.Resolution())*s.DamagePrevalence*1.2)))
+	colonized := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution()*ws.Resolution())*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
 
 	for x := range grid.Width() {
 		for y := range grid.Height() {
@@ -39,13 +39,14 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 			colonized := colonized[:0]
 			cell := grid.Get(x, y)
 
-			for dx := range ws.Resolution {
-				for dy := range ws.Resolution {
+			res := ws.Resolution()
+			for dx := range res {
+				for dy := range res {
 					if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {
 						continue
 					}
-					xx := x*ws.Resolution + dx
-					yy := y*ws.Resolution + dy
+					xx := x*res + dx
+					yy := y*res + dy
 					r := rand.Float64()
 					if r < s.DamagePrevalence {
 						if r < s.DamagePrevalence*s.BeetlePrevalence {
