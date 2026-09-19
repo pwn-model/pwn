@@ -1,6 +1,6 @@
 # PWN model
 
-Go implementation of the Pine Wood Nematode model.
+Go implementation of the Pine Wilt Nematode model.
 
 ## Usage
 

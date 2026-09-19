@@ -58,20 +58,20 @@ func main() {
 		TickOfYear:     20,
 		KernelScale:    1.0,
 		KernelRadius:   5,
-		BeetlesPerTree: 5,
-		TreesPerBeetle: 1,
+		BeetlesPerTree: 2.2,
+		TreesPerBeetle: 1.0,
 	})
 
 	// Observers
 
-	// app.AddUISystem((&window.Window{}).
-	// 	With(&plot.TimeSeries{
-	// 		Observer: &obs.TreePopulation{},
-	// 	}))
-
 	app.AddUISystem((&window.Window{}).
 		With(&plot.TimeSeries{
 			Observer: &obs.TreeColonization{},
+			Labels: plot.Labels{
+				Title: "Tree colonization",
+				X:     "time [weeks]",
+				Y:     "proportion colonized",
+			},
 		}))
 
 	app.AddUISystem((&window.Window{}).

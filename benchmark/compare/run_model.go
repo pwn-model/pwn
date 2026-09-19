@@ -78,7 +78,7 @@ func setup(width, height, ticks int) *app.App {
 		TickOfYear:     20,
 		KernelScale:    1.0,
 		KernelRadius:   5,
-		BeetlesPerTree: 5,
+		BeetlesPerTree: 2.2,
 		TreesPerBeetle: 1,
 	})
 
