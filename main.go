@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/mazznoer/colorgrad"
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -76,6 +77,13 @@ func main() {
 
 	app.AddUISystem((&window.Window{}).
 		With(&maps.Trees{}))
+
+	app.AddUISystem((&window.Window{}).
+		With(&plot.Image{
+			Observer: &maps.TreeColonization{CellSize: 100},
+			Colors:   colorgrad.Viridis(),
+			Max:      5,
+		}))
 
 	// Stop criterion
 	app.AddSystem(&system.FixedTermination{Steps: 5200})
