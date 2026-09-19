@@ -55,8 +55,9 @@ func main() {
 	})
 	app.AddSystem(&sys.Colonization{
 		TickOfYear:     20,
-		KernelScale:    1.0,
-		KernelRadius:   5,
+		CellSize:       100,
+		KernelScale:    100,
+		KernelRadius:   400,
 		BeetlesPerTree: 2.2,
 		TreesPerBeetle: 1.0,
 	})

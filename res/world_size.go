@@ -59,8 +59,3 @@ func (s *WorldSize) GridCellSize() int {
 func (s *WorldSize) Resolution() int {
 	return s.resolution
 }
-
-// ToCoords calculates space grid coords from tree grid coords.
-func (s *WorldSize) ToCoords(x, y int) (int, int) {
-	return x / s.resolution, y / s.resolution
-}

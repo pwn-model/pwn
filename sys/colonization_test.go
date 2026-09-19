@@ -55,7 +55,7 @@ func TestBuildKernelNormalizesWeights(t *testing.T) {
 func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 	world := setupColonizationWorld(t, 30, 30, 10)
 
-	s := Colonization{KernelRadius: 1, KernelScale: 1, BeetlesPerTree: 10}
+	s := Colonization{CellSize: 10, KernelScale: 1, KernelRadius: 1, BeetlesPerTree: 10}
 	s.Initialize(world)
 
 	// Place the source away from any edge so the kernel's full support
@@ -83,7 +83,7 @@ func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 func TestColonizationCalcProbabilityOccupancyFormula(t *testing.T) {
 	world := setupColonizationWorld(t, 30, 10, 10)
 
-	s := Colonization{TreesPerBeetle: 1}
+	s := Colonization{CellSize: 10, TreesPerBeetle: 1}
 	s.Initialize(world)
 
 	// Cell (0,0): no susceptible trees -- must be left untouched.
@@ -113,8 +113,9 @@ func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
 
 	s := Colonization{
 		TickOfYear:     5,
-		KernelRadius:   0,
+		CellSize:       100,
 		KernelScale:    1,
+		KernelRadius:   0,
 		BeetlesPerTree: 100,
 		TreesPerBeetle: 100,
 	}
@@ -143,8 +144,9 @@ func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
 	// regardless of the RNG draw.
 	s := Colonization{
 		TickOfYear:     3,
-		KernelRadius:   0,
+		CellSize:       100,
 		KernelScale:    1,
+		KernelRadius:   0,
 		BeetlesPerTree: 5,
 		TreesPerBeetle: 5,
 	}
@@ -173,8 +175,9 @@ func TestColonizationNoColonizationWithoutSource(t *testing.T) {
 
 	s := Colonization{
 		TickOfYear:     3,
-		KernelRadius:   2,
+		CellSize:       100,
 		KernelScale:    1,
+		KernelRadius:   2,
 		BeetlesPerTree: 1000,
 		TreesPerBeetle: 1000,
 	}
