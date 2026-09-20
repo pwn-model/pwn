@@ -8,6 +8,8 @@ import (
 	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/config"
+	"github.com/pwn-model/pwn/obs"
+	"github.com/pwn-model/pwn/obs/maps"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
 	"github.com/stretchr/testify/assert"
@@ -105,17 +107,30 @@ func TestLoad_FileNotFound(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestConfig_Apply builds an app from the repo's own config.yaml, the same
-// way main.go does, and runs it to completion, as an end-to-end smoke test
-// of resource setup, system ordering and the stop criterion. The PRNG seed
-// itself is applied by main.go, not by Config.Apply (see main.go), so it's
-// set here the same way.
+// TestConfig_Apply builds and runs an app to completion, as an end-to-end
+// smoke test of resource setup, system ordering and the stop criterion.
+//
+// Deliberately built from an inline config, not the repo's own
+// scripts/config.yaml: that one also declares "windows", and Apply adds
+// those as real UI systems whose Initialize opens an actual OpenGL window,
+// which a headless test must not trigger. See main_test.go for a
+// windows-aware check of the real file, without running it.
 func TestConfig_Apply(t *testing.T) {
-	cfg, err := config.Load("../config.yaml")
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+seed: 1
+resources:
+  - type: pwn.res.WorldSize
+    width: 4000
+    height: 3000
+    cell_size: 10
+    grid_cell_size: 500
+systems:
+  - type: pwn.sys.InitGrids
+  - type: ark-tools.system.FixedTermination
+    steps: 10
+`), &cfg)
 	require.NoError(t, err)
-	require.NotEmpty(t, cfg.Systems)
-	assert.Equal(t, uint64(1), cfg.Seed)
-	assert.Equal(t, 30.0, cfg.TPS)
 
 	// Note: intentionally not setting a.TPS = cfg.TPS here (unlike main.go).
 	// TPS throttles Run() to real time, which would make this test take
@@ -132,10 +147,94 @@ func TestConfig_Apply(t *testing.T) {
 
 	last := cfg.Systems[len(cfg.Systems)-1].System
 	term, ok := last.(*system.FixedTermination)
-	require.True(t, ok, "config.yaml is expected to end with a FixedTermination entry")
+	require.True(t, ok)
 
 	a.Run()
 
 	tick := ecs.GetResource[resource.Tick](a.World)
 	assert.Equal(t, term.Steps, tick.Tick)
+}
+
+func TestConfig_UnmarshalWindows(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+windows:
+  - title: Tree colonization
+    draw_interval: 2
+    drawers:
+      - type: pwn.obs.maps.Trees
+`), &cfg)
+	require.NoError(t, err)
+	require.Len(t, cfg.Windows, 1)
+
+	win := cfg.Windows[0]
+	assert.Equal(t, "Tree colonization", win.Title)
+	assert.Equal(t, 2, win.DrawInterval)
+	require.Len(t, win.Drawers, 1)
+
+	_, ok := win.Drawers[0].Drawer.(*maps.Trees)
+	assert.True(t, ok)
+}
+
+func TestConfig_UnmarshalWindows_UnknownDrawerType(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+windows:
+  - drawers:
+      - type: NoSuchDrawer
+`), &cfg)
+	assert.ErrorContains(t, err, "NoSuchDrawer")
+}
+
+func TestConfig_UnmarshalWindows_MissingDrawerType(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+windows:
+  - drawers:
+      - scale: 1.0
+`), &cfg)
+	assert.ErrorContains(t, err, "type")
+}
+
+// TestConfig_NestedObservers resolves a Row and a Matrix observer nested
+// inside RowObserverConfig/MatrixObserverConfig fields directly, the same
+// way a drawer or reporter's own "observer" field would.
+func TestConfig_NestedObservers(t *testing.T) {
+	var row config.RowObserverConfig
+	err := yaml.Unmarshal([]byte(`type: pwn.obs.TreeColonization`), &row)
+	require.NoError(t, err)
+	_, ok := row.Row.(*obs.TreeColonization)
+	assert.True(t, ok)
+
+	var matrix config.MatrixObserverConfig
+	err = yaml.Unmarshal([]byte(`
+type: pwn.obs.maps.TreeColonization
+cell_size: 100
+`), &matrix)
+	require.NoError(t, err)
+	m, ok := matrix.Matrix.(*maps.TreeColonization)
+	require.True(t, ok)
+	assert.Equal(t, 100, m.CellSize)
+}
+
+// TestConfig_NestedObservers_WrongKind proves that sharing one registry
+// between Row and Matrix observers (see RegisterObserver) doesn't weaken
+// checking: pwn.obs.TreeColonization only implements observer.Row, so
+// using it where a Matrix observer is expected must still fail, just at
+// resolution time (via RegisterObserver/RowObserverConfig's own type
+// assertion) instead of at registration time.
+func TestConfig_NestedObservers_WrongKind(t *testing.T) {
+	var matrix config.MatrixObserverConfig
+	err := yaml.Unmarshal([]byte(`type: pwn.obs.TreeColonization`), &matrix)
+	assert.ErrorContains(t, err, "pwn.obs.TreeColonization")
+}
+
+func TestConfig_NestedObservers_UnknownType(t *testing.T) {
+	var row config.RowObserverConfig
+	err := yaml.Unmarshal([]byte(`type: NoSuchObserver`), &row)
+	assert.ErrorContains(t, err, "NoSuchObserver")
+
+	var matrix config.MatrixObserverConfig
+	err = yaml.Unmarshal([]byte(`type: NoSuchObserver`), &matrix)
+	assert.ErrorContains(t, err, "NoSuchObserver")
 }

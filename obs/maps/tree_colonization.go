@@ -3,9 +3,14 @@ package maps
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/util"
 )
+
+func init() {
+	config.RegisterObserver[TreeColonization]()
+}
 
 // TreeColonization reports the number of colonized trees per grid cell of
 // CellSize (in meters), aggregated over the base tree grid.
@@ -16,7 +21,7 @@ import (
 type TreeColonization struct {
 	// CellSize of the aggregation grid, in meters. Must be a multiple of
 	// the world's base cell size.
-	CellSize int
+	CellSize int `yaml:"cell_size"`
 
 	coloFilter *ecs.Filter1[comp.Position]
 

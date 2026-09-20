@@ -46,3 +46,30 @@ systems:
   # Stop criterion
   - type: ark-tools.system.FixedTermination
     steps: 5200
+
+  # Reporters
+  - type: ark-tools.reporter.CSV
+    observer:
+      type: pwn.obs.TreePopulation
+    file: out/tree_pop.csv
+
+windows:
+  - drawers:
+      - type: ark-pixel.plot.TimeSeries
+        observer:
+          type: pwn.obs.TreeColonization
+        labels:
+          title: Tree colonization
+          x: time [weeks]
+          y: proportion colonized
+
+  - drawers:
+      - type: pwn.obs.maps.Trees
+
+  - drawers:
+      - type: ark-pixel.plot.Image
+        observer:
+          type: pwn.obs.maps.TreeColonization
+          cell_size: 100
+        colors: viridis
+        max: 5

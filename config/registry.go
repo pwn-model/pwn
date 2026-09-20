@@ -1,5 +1,6 @@
-// Package config assembles an [app.App]'s resources and systems from a YAML
-// config file, so that models can be composed without recompiling.
+// Package config assembles an [app.App]'s resources, systems and UI windows
+// from a YAML config file, so that models can be composed without
+// recompiling.
 package config
 
 import (
@@ -10,13 +11,68 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark/ecs"
+	yaml "go.yaml.in/yaml/v3"
 )
 
-// registry maps a system's config type name to a factory that creates a
-// zero-value instance of it, returned as an [app.System].
-var registry = map[string]func() app.System{}
+// buildEntry is a registered type's way of turning a decoded config value
+// into the actual, usable value: a fresh decode target for its config
+// shape, and a way to build the real thing from it.
+//
+// It is the shared shape behind every registry in this file except
+// resources (see resourceEntry): systems, drawers and observers are all
+// just handed back as a value implementing some interface, with no extra
+// world-mutating step the way adding a resource needs.
+type buildEntry struct {
+	newConfig func() any        // fresh *C for yaml to decode into
+	build     func(cfg any) any // *C -> the constructed value
+}
+
+// register records, in reg under T's qualifiedName, a way to decode a
+// config shape C and turn it into a T via build.
+func register[C any, T any](reg map[string]buildEntry, build func(C) T) {
+	name := qualifiedName(reflect.TypeFor[T]())
+	if _, ok := reg[name]; ok {
+		panic(fmt.Sprintf("config: type %q is already registered", name))
+	}
+	reg[name] = buildEntry{
+		newConfig: func() any { return new(C) },
+		build:     func(cfg any) any { return build(*cfg.(*C)) },
+	}
+}
+
+// buildFromNode resolves a "type" + parameters YAML node via reg, decodes
+// the rest of the node into the resolved type's config shape, and builds
+// the final value, asserting it implements I.
+func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry) (I, error) {
+	var zero I
+
+	typ, err := entryType(node)
+	if err != nil {
+		return zero, err
+	}
+
+	entry, ok := reg[typ]
+	if !ok {
+		return zero, fmt.Errorf("unknown type %q", typ)
+	}
+
+	cfg := entry.newConfig()
+	if err := node.Decode(cfg); err != nil {
+		return zero, fmt.Errorf("decoding %q: %w", typ, err)
+	}
+
+	v, ok := entry.build(cfg).(I)
+	if !ok {
+		return zero, fmt.Errorf("%q does not implement the expected interface", typ)
+	}
+	return v, nil
+}
+
+// registry maps a system's config type name to its buildEntry.
+var registry = map[string]buildEntry{}
 
 // Register makes a system type available for use in config files, under a
 // name derived from the type itself: "<module>.<package>.<Type>", e.g.
@@ -26,27 +82,25 @@ var registry = map[string]func() app.System{}
 // T is the system's concrete (value) type; PT must be *T and implement
 // [app.System]. Call it as Register[sys.Colonization](), once per system
 // type, typically from that type's own file's init function.
+//
+// For a system that needs more than its own exported fields decoded
+// directly (e.g. one with a nested, polymorphic field), use [RegisterFunc]
+// instead.
 func Register[T any, PT interface {
 	*T
 	app.System
 }]() {
-	name := qualifiedName(reflect.TypeFor[T]())
-	if _, ok := registry[name]; ok {
-		panic(fmt.Sprintf("config: system type %q is already registered", name))
-	}
-	registry[name] = func() app.System {
-		return PT(new(T))
-	}
+	register(registry, func(c T) PT { return PT(&c) })
 }
 
-// newSystem creates a new, zero-value instance of the system type registered
-// under name.
-func newSystem(name string) (app.System, bool) {
-	factory, ok := registry[name]
-	if !ok {
-		return nil, false
-	}
-	return factory(), true
+// RegisterFunc makes a system type available for use in config files (see
+// [Register]), by decoding a config shape C and turning it into the system
+// via build. Use this when T's own fields aren't enough to decode directly,
+// e.g. because one of them is itself a nested, polymorphic value such as a
+// [window.Drawer] or [observer.Row]/[observer.Matrix] (see
+// [RowObserverConfig], [MatrixObserverConfig]).
+func RegisterFunc[C any, T app.System](build func(C) T) {
+	register(registry, build)
 }
 
 // resourceEntry is a registered resource type: a way to create a decode
@@ -87,10 +141,54 @@ func RegisterResource[C any, T any](build func(C) T) {
 	}
 }
 
-// newResourceConfig looks up the resource type registered under name.
-func newResourceConfig(name string) (resourceEntry, bool) {
-	entry, ok := resourceRegistry[name]
-	return entry, ok
+// drawerRegistry maps a drawer's config type name to its buildEntry.
+var drawerRegistry = map[string]buildEntry{}
+
+// RegisterDrawer makes a [window.Drawer] type available for use in a
+// window's "drawers" list (see [Register]).
+//
+// For a drawer that needs more than its own exported fields decoded
+// directly, use [RegisterDrawerFunc] instead.
+func RegisterDrawer[T any, PT interface {
+	*T
+	window.Drawer
+}]() {
+	register(drawerRegistry, func(c T) PT { return PT(&c) })
+}
+
+// RegisterDrawerFunc makes a [window.Drawer] type available for use in a
+// window's "drawers" list, by decoding a config shape C and turning it into
+// the drawer via build (see [RegisterFunc]).
+func RegisterDrawerFunc[C any, T window.Drawer](build func(C) T) {
+	register(drawerRegistry, build)
+}
+
+// observerRegistry maps an observer's config type name to its buildEntry.
+//
+// There is one registry for both observer kinds
+// ([observer.Row]/[observer.Matrix] from github.com/mlange-42/ark-tools/observer),
+// not one per kind: a registered type isn't "a Row observer" or "a Matrix
+// observer" in the abstract, it's just whatever it implements, and that's
+// exactly what [RowObserverConfig]/[MatrixObserverConfig] each already
+// check for via [buildFromNode]'s own type assertion when they resolve a
+// nested "observer" entry. Splitting the registry in two would only
+// duplicate that check earlier, for no added safety.
+var observerRegistry = map[string]buildEntry{}
+
+// RegisterObserver makes an observer type available for use as a nested
+// "observer" entry of a drawer or reporter (see [RowObserverConfig],
+// [MatrixObserverConfig], [Register]).
+//
+// For an observer that needs more than its own exported fields decoded
+// directly, use [RegisterObserverFunc] instead.
+func RegisterObserver[T any, PT interface{ *T }]() {
+	register(observerRegistry, func(c T) PT { return PT(&c) })
+}
+
+// RegisterObserverFunc makes an observer type available (see
+// [RegisterFunc], [RegisterObserver]).
+func RegisterObserverFunc[C any, T any](build func(C) T) {
+	register(observerRegistry, build)
 }
 
 // moduleRoots lists all module paths involved in the build (this module and
@@ -124,8 +222,15 @@ func loadModuleRoots() {
 // (with "/" replaced by "."), followed by its type name.
 //
 // E.g. for sys.InitTrees (module "github.com/pwn-model/pwn", package
-// "sys"), this yields "pwn.sys.InitTrees".
+// "sys"), this yields "pwn.sys.InitTrees". t may be a pointer type (as it
+// usually is here, since a type is normally registered by its
+// interface-implementing pointer); the pointer is transparently unwrapped
+// first.
 func qualifiedName(t reflect.Type) string {
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
 	loadModuleRoots()
 
 	pkgPath := t.PkgPath()

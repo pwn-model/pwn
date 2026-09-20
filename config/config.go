@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
+	"github.com/mlange-42/ark-tools/observer"
 	"github.com/mlange-42/ark/ecs"
 	yaml "go.yaml.in/yaml/v3"
 )
@@ -26,10 +28,14 @@ type Config struct {
 	// "type" selects the system implementation (see [Register]); its other
 	// fields are decoded directly into that system's exported parameters.
 	Systems []SystemConfig `yaml:"systems"`
+	// Windows lists the UI windows to open, each with its own list of
+	// drawers (see [WindowConfig]).
+	Windows []WindowConfig `yaml:"windows"`
 }
 
-// entryType decodes the "type" field common to every systems/resources
-// config entry, ahead of resolving and decoding the rest of it.
+// entryType decodes the "type" field common to every systems/resources/
+// drawers/observers config entry, ahead of resolving and decoding the rest
+// of it.
 func entryType(node *yaml.Node) (string, error) {
 	var head struct {
 		Type string `yaml:"type"`
@@ -50,23 +56,12 @@ type SystemConfig struct {
 }
 
 // UnmarshalYAML resolves the entry's "type" field via the system registry,
-// then decodes the whole entry into the resulting concrete system, so that
-// its own exported parameter fields are populated by the yaml package's
-// usual struct decoding.
+// then decodes the rest of the entry into that system's config shape.
 func (c *SystemConfig) UnmarshalYAML(node *yaml.Node) error {
-	typ, err := entryType(node)
+	sys, err := buildFromNode[app.System](node, registry)
 	if err != nil {
 		return err
 	}
-
-	sys, ok := newSystem(typ)
-	if !ok {
-		return fmt.Errorf("unknown system type %q", typ)
-	}
-	if err := node.Decode(sys); err != nil {
-		return fmt.Errorf("decoding system %q: %w", typ, err)
-	}
-
 	c.System = sys
 	return nil
 }
@@ -87,7 +82,7 @@ func (c *ResourceConfig) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 
-	entry, ok := newResourceConfig(typ)
+	entry, ok := resourceRegistry[typ]
 	if !ok {
 		return fmt.Errorf("unknown resource type %q", typ)
 	}
@@ -99,6 +94,88 @@ func (c *ResourceConfig) UnmarshalYAML(node *yaml.Node) error {
 
 	c.apply = func(world *ecs.World) { entry.apply(world, cfg) }
 	return nil
+}
+
+// DrawerConfig decodes a single "type" + parameters entry from a window's
+// "drawers" list into a concrete, registered [window.Drawer].
+type DrawerConfig struct {
+	Drawer window.Drawer
+}
+
+// UnmarshalYAML resolves the entry's "type" field via the drawer registry,
+// then decodes the rest of the entry into that drawer's config shape.
+func (c *DrawerConfig) UnmarshalYAML(node *yaml.Node) error {
+	d, err := buildFromNode[window.Drawer](node, drawerRegistry)
+	if err != nil {
+		return err
+	}
+	c.Drawer = d
+	return nil
+}
+
+// RowObserverConfig decodes a single "type" + parameters entry, used as a
+// nested "observer" field of a drawer or reporter, into a concrete,
+// registered [observer.Row].
+type RowObserverConfig struct {
+	Row observer.Row
+}
+
+// UnmarshalYAML resolves the entry's "type" field via the observer
+// registry, then decodes the rest of the entry into that observer's config
+// shape. Resolution fails if the named type doesn't implement [observer.Row]
+// (see [RegisterObserver]).
+func (c *RowObserverConfig) UnmarshalYAML(node *yaml.Node) error {
+	o, err := buildFromNode[observer.Row](node, observerRegistry)
+	if err != nil {
+		return err
+	}
+	c.Row = o
+	return nil
+}
+
+// MatrixObserverConfig decodes a single "type" + parameters entry, used as
+// a nested "observer" field of a drawer, into a concrete, registered
+// [observer.Matrix].
+type MatrixObserverConfig struct {
+	Matrix observer.Matrix
+}
+
+// UnmarshalYAML resolves the entry's "type" field via the observer
+// registry, then decodes the rest of the entry into that observer's config
+// shape. Resolution fails if the named type doesn't implement
+// [observer.Matrix] (see [RegisterObserver]).
+func (c *MatrixObserverConfig) UnmarshalYAML(node *yaml.Node) error {
+	o, err := buildFromNode[observer.Matrix](node, observerRegistry)
+	if err != nil {
+		return err
+	}
+	c.Matrix = o
+	return nil
+}
+
+// WindowConfig is a single entry of the top-level "windows" list: a UI
+// window and its ordered list of drawers. Unlike systems/resources/
+// drawers/observers, there is only ever one window implementation
+// ([window.Window]), so a WindowConfig needs no "type" field or registry of
+// its own; only its (polymorphic) Drawers need one.
+type WindowConfig struct {
+	Title        string         `yaml:"title"`
+	Bounds       window.Bounds  `yaml:"bounds"`
+	DrawInterval int            `yaml:"draw_interval"`
+	Drawers      []DrawerConfig `yaml:"drawers"`
+}
+
+// build turns wc into an actual, ready-to-add *window.Window.
+func (wc WindowConfig) build() *window.Window {
+	w := &window.Window{
+		Title:        wc.Title,
+		Bounds:       wc.Bounds,
+		DrawInterval: wc.DrawInterval,
+	}
+	for _, dc := range wc.Drawers {
+		w.With(dc.Drawer)
+	}
+	return w
 }
 
 // Load reads and parses a model config file.
@@ -115,15 +192,19 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Apply adds all configured resources and systems to a, in order.
+// Apply adds all configured resources, systems and UI windows to a, in
+// order.
 //
-// It does not touch a's PRNG seed, nor UI systems/observers; those are
-// still wired up by hand (see main.go).
+// It does not touch a's PRNG seed; that is still wired up by hand (see
+// main.go), to keep the PRNG implementation itself fixed.
 func (c *Config) Apply(a *app.App) {
 	for _, rc := range c.Resources {
 		rc.apply(a.World)
 	}
 	for _, sc := range c.Systems {
 		a.AddSystem(sc.System)
+	}
+	for _, wc := range c.Windows {
+		a.AddUISystem(wc.build())
 	}
 }

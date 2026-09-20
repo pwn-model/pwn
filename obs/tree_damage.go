@@ -3,7 +3,12 @@ package obs
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 )
+
+func init() {
+	config.RegisterObserver[TreeDamage]()
+}
 
 // TreeDamage reports the share of damaged trees.
 type TreeDamage struct {
