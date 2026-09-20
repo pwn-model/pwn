@@ -3,7 +3,12 @@ package obs
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 )
+
+func init() {
+	config.RegisterObserver[TreeColonization]()
+}
 
 // TreeColonization reports the share of colonized trees.
 type TreeColonization struct {

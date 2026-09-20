@@ -3,7 +3,12 @@ package obs
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 )
+
+func init() {
+	config.RegisterObserver[TreePopulation]()
+}
 
 // TreePopulation reports total and damaged tree counts per model tick.
 type TreePopulation struct {

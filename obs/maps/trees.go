@@ -10,8 +10,13 @@ import (
 	"github.com/gopxl/pixel/v2/backends/opengl"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 )
+
+func init() {
+	config.RegisterDrawer[Trees]()
+}
 
 // Trees visualizes the trees grid as a color map.
 type Trees struct {

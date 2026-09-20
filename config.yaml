@@ -1,0 +1,75 @@
+seed: 1
+tps: 30
+
+resources:
+  - type: pwn.res.WorldSize
+    width: 4000
+    height: 3000
+    cell_size: 10
+    grid_cell_size: 500
+
+systems:
+  # Initialization
+  - type: pwn.sys.InitGrids
+
+  - type: pwn.sys.InitTrees
+    tree_probability: 0.9
+    damage_prevalence: 0.03
+    beetle_prevalence: 0.2
+
+  # Systems
+  - type: pwn.sys.UpdateTime
+    ticks_per_year: 52
+
+  - type: pwn.sys.DiseaseCourse
+    ticks_to_damage: 8
+
+  - type: pwn.sys.RandomInfection
+    tick_of_infection: 0
+    num_trees: 100
+    cell_x: 2
+    cell_y: 2
+
+  - type: pwn.sys.DamageTrees
+    tick_of_year: 35
+    damage_probability: 0.01
+    removal_probability: 0.333
+    
+  - type: pwn.sys.Colonization
+    tick_of_year: 20
+    cell_size: 100
+    kernel_scale: 100.0
+    kernel_radius: 400
+    beetles_per_tree: 2.2
+    trees_per_beetle: 1.0
+
+  # Stop criterion
+  - type: ark-tools.system.FixedTermination
+    steps: 5200
+
+  # Reporters
+  - type: ark-tools.reporter.CSV
+    observer:
+      type: pwn.obs.TreePopulation
+    file: out/tree_pop.csv
+
+windows:
+  - drawers:
+      - type: ark-pixel.plot.TimeSeries
+        observer:
+          type: pwn.obs.TreeColonization
+        labels:
+          title: Tree colonization
+          x: time [weeks]
+          y: proportion colonized
+
+  - drawers:
+      - type: pwn.obs.maps.Trees
+
+  - drawers:
+      - type: ark-pixel.plot.Image
+        observer:
+          type: pwn.obs.maps.TreeColonization
+          cell_size: 100
+        colors: viridis
+        max: 5

@@ -4,15 +4,21 @@ import (
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/util"
 )
 
+func init() {
+	config.Register[RandomInfection]()
+}
+
 // RandomInfection infects the given number of trees in the given grid cell.
 type RandomInfection struct {
-	TickOfInfection int
-	NumTrees        int
-	CellX, CellY    int
+	TickOfInfection int `yaml:"tick_of_infection"`
+	NumTrees        int `yaml:"num_trees"`
+	CellX           int `yaml:"cell_x"`
+	CellY           int `yaml:"cell_y"`
 
 	filter  *ecs.Filter2[comp.Position, comp.InCell]
 	mapper  *ecs.Map1[comp.Infected]

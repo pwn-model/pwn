@@ -7,28 +7,33 @@ import (
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/util"
 )
 
+func init() {
+	config.Register[Colonization]()
+}
+
 // Colonization is the background beetle spread process.
 type Colonization struct {
 	// TickOfYear when colonization takes place.
-	TickOfYear int
+	TickOfYear int `yaml:"tick_of_year"`
 	// CellSize of the dispersal grid, in meters.
-	CellSize int
+	CellSize int `yaml:"cell_size"`
 	// KernelScale is the dispersal kernel's decay length, in meters.
-	KernelScale float64
+	KernelScale float64 `yaml:"kernel_scale"`
 	// KernelRadius is the dispersal kernel's cutoff radius, in meters.
 	// Rounded up to full cells.
-	KernelRadius int
+	KernelRadius int `yaml:"kernel_radius"`
 	// BeetlesPerTree is the fixed number of beetles emerging from each
 	// colonized tree per year.
-	BeetlesPerTree float64
+	BeetlesPerTree float64 `yaml:"beetles_per_tree"`
 	// TreesPerBeetle is the mean number of distinct (uniformly random)
 	// damaged trees within a cell that a single arriving beetle attempts
 	// to colonize.
-	TreesPerBeetle float64
+	TreesPerBeetle float64 `yaml:"trees_per_beetle"`
 
 	coloFilter    *ecs.Filter1[comp.Position]
 	damagedFilter *ecs.Filter1[comp.Position]

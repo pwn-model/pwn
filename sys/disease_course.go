@@ -3,12 +3,17 @@ package sys
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 )
 
+func init() {
+	config.Register[DiseaseCourse]()
+}
+
 // DiseaseCourse system.
 type DiseaseCourse struct {
-	TicksToDamage int
+	TicksToDamage int `yaml:"ticks_to_damage"`
 
 	filter  *ecs.Filter1[comp.Infected]
 	mapper  *ecs.Map1[comp.Damaged]
