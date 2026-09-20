@@ -1,5 +1,22 @@
 package res
 
+import "github.com/pwn-model/pwn/config"
+
+func init() {
+	config.RegisterResource(func(c WorldSizeConfig) WorldSize {
+		return NewWorldSize(c.Width, c.Height, c.CellSize, c.GridCellSize)
+	})
+}
+
+// WorldSizeConfig holds the arguments of [NewWorldSize], for use as a
+// config file's "resources" entry.
+type WorldSizeConfig struct {
+	Width        int `yaml:"width"`
+	Height       int `yaml:"height"`
+	CellSize     int `yaml:"cell_size"`
+	GridCellSize int `yaml:"grid_cell_size"`
+}
+
 // WorldSize resource.
 type WorldSize struct {
 	width        int // Width of the world in tree diameters.

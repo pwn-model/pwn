@@ -7,14 +7,19 @@ import (
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 )
 
+func init() {
+	config.Register[InitTrees]()
+}
+
 // InitTrees system
 type InitTrees struct {
-	TreeProbability  float64
-	DamagePrevalence float64
-	BeetlePrevalence float64
+	TreeProbability  float64 `yaml:"tree_probability"`
+	DamagePrevalence float64 `yaml:"damage_prevalence"`
+	BeetlePrevalence float64 `yaml:"beetle_prevalence"`
 }
 
 // Initialize the system.

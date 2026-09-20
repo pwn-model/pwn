@@ -6,14 +6,19 @@ import (
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 )
 
+func init() {
+	config.Register[DamageTrees]()
+}
+
 // DamageTrees is a systems that damages trees, and removes damaged trees.
 type DamageTrees struct {
-	TickOfYear         int
-	DamageProbability  float64
-	RemovalProbability float64
+	TickOfYear         int     `yaml:"tick_of_year"`
+	DamageProbability  float64 `yaml:"damage_probability"`
+	RemovalProbability float64 `yaml:"removal_probability"`
 
 	timeRes       ecs.Resource[res.Time]
 	randRes       ecs.Resource[resource.Rand]

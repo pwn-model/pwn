@@ -3,8 +3,13 @@ package sys
 import (
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
+	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
 )
+
+func init() {
+	config.Register[InitGrids]()
+}
 
 // InitGrids system
 type InitGrids struct {
