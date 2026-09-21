@@ -1,10 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 
+	"github.com/alecthomas/kong"
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/resource"
@@ -16,11 +16,16 @@ import (
 	_ "github.com/pwn-model/pwn/sys"
 )
 
-func main() {
-	configPath := flag.String("config", "config.yaml", "path to the model config file")
-	flag.Parse()
+// CLI is the command-line interface of the model executable.
+type CLI struct {
+	Config string `arg:"" optional:"" default:"config.yaml" type:"path" help:"Path to the model config file. Default: config.yaml"`
+}
 
-	if err := RunFromConfig(*configPath); err != nil {
+func main() {
+	var cli CLI
+	kong.Parse(&cli, kong.Description("Runs the Pine Wilt Nematode model."))
+
+	if err := RunFromConfig(cli.Config); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -28,7 +33,7 @@ func main() {
 // RunFromConfig loads the model config file at configPath, builds an app
 // from it, and runs it to completion. This is the entry point's own logic,
 // factored out so it can be called from places other than main() (e.g.
-// tests) without going through the command-line flag.
+// tests) without going through the command line.
 func RunFromConfig(configPath string) error {
 	cfg, err := config.Load(configPath)
 	if err != nil {

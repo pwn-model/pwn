@@ -3,6 +3,7 @@ module github.com/pwn-model/pwn
 go 1.27.1
 
 require (
+	github.com/alecthomas/kong v1.16.1
 	github.com/gopxl/pixel/v2 v2.1.0
 	github.com/mazznoer/colorgrad v0.11.1
 	github.com/mlange-42/ark v0.8.3
