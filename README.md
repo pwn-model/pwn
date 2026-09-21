@@ -10,4 +10,4 @@ Run the default model like this:
 go run .
 ```
 
-For the default model setup, see file [`main.go`](https://github.com/pwn-model/pwn/blob/main/main.go).
+For the default model setup, see file [`config.yaml`](https://github.com/pwn-model/pwn/blob/main/config.yaml).
