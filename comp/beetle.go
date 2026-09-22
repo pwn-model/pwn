@@ -6,7 +6,12 @@ type BeetlePosition struct {
 	Y int
 }
 
-// LifeExpectancy component of beetles
+// EmergenceTick component of beetles.
+type EmergenceTick struct {
+	TickOfEmergence int
+}
+
+// LifeExpectancy component of beetles.
 type LifeExpectancy struct {
 	TickOfDeath int
 }

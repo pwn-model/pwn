@@ -23,7 +23,7 @@ type BeetleEmergence struct {
 	randRes ecs.Resource[resource.Rand]
 
 	filter  *ecs.Filter1[comp.Position]
-	builder *ecs.Map2[comp.BeetlePosition, comp.LifeExpectancy]
+	builder *ecs.Map3[comp.BeetlePosition, comp.EmergenceTick, comp.LifeExpectancy]
 
 	sourceTrees []comp.Position
 }
@@ -40,6 +40,7 @@ func (s *BeetleEmergence) Initialize(world *ecs.World) {
 // Update the system.
 func (s *BeetleEmergence) Update(_ *ecs.World) {
 	time := s.timeRes.Get()
+	tick := time.Tick
 
 	if time.TickOfYear != s.TickOfYear {
 		return
@@ -53,11 +54,12 @@ func (s *BeetleEmergence) Update(_ *ecs.World) {
 	}
 
 	i := 0
-	s.builder.NewBatchFn(len(s.sourceTrees)*s.BeetlesPerTree, func(_ ecs.Entity, bp *comp.BeetlePosition, le *comp.LifeExpectancy) {
+	s.builder.NewBatchFn(len(s.sourceTrees)*s.BeetlesPerTree, func(_ ecs.Entity, bp *comp.BeetlePosition, et *comp.EmergenceTick, le *comp.LifeExpectancy) {
 		idx := i / s.BeetlesPerTree
 		pos := &s.sourceTrees[idx]
 		bp.X, bp.Y = pos.X, pos.Y
-		le.TickOfDeath = time.Tick + int(util.ExpFloat64(rng)*s.LifeExpectancy)
+		et.TickOfEmergence = tick
+		le.TickOfDeath = tick + int(util.ExpFloat64(rng)*s.LifeExpectancy)
 		i++
 	})
 
