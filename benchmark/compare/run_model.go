@@ -70,6 +70,12 @@ func setup(width, height, ticks int) *app.App {
 		DamageProbability:  0.01,
 		RemovalProbability: 0.333,
 	})
+	app.AddSystem(&sys.BeetleEmergence{
+		TickOfYear:     19,
+		BeetlesPerTree: 10,
+		LifeExpectancy: 5,
+	})
+	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{
 		TickOfYear:     20,
 		CellSize:       100,

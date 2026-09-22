@@ -34,6 +34,13 @@ systems:
     tick_of_year: 35
     damage_probability: 0.01
     removal_probability: 0.333
+
+  - type: pwn.sys.BeetleEmergence
+    tick_of_year: 19
+    beetles_per_tree: 10
+    life_expectancy: 5
+    
+  - type: pwn.sys.BeetleMortality
     
   - type: pwn.sys.Colonization
     tick_of_year: 20
@@ -54,7 +61,8 @@ systems:
     file: out/tree_pop.csv
 
 windows:
-  - drawers:
+  - title: Colonization time series
+    drawers:
       - type: ark-pixel.plot.TimeSeries
         observer:
           type: pwn.obs.TreeColonization
@@ -63,13 +71,24 @@ windows:
           x: time [weeks]
           y: proportion colonized
 
-  - drawers:
+  - title: Trees
+    drawers:
       - type: pwn.obs.maps.Trees
 
-  - drawers:
+  - title: Colonized trees
+    drawers:
       - type: ark-pixel.plot.Image
         observer:
           type: pwn.obs.maps.TreeColonization
           cell_size: 100
         colors: viridis
         max: 5
+
+  - title: Beetles
+    drawers:
+      - type: ark-pixel.plot.Image
+        observer:
+          type: pwn.obs.maps.Beetles
+          cell_size: 100
+        colors: viridis
+        max: 50
