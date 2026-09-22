@@ -1,13 +1,12 @@
 package sys
 
 import (
-	"math/rand/v2"
-
 	"github.com/mlange-42/ark-tools/resource"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
@@ -45,7 +44,7 @@ func (s *BeetleEmergence) Update(_ *ecs.World) {
 	if time.TickOfYear != s.TickOfYear {
 		return
 	}
-	rng := rand.New(s.randRes.Get())
+	rng := s.randRes.Get()
 
 	q := s.filter.Query()
 	for q.NextTable() {
@@ -58,7 +57,7 @@ func (s *BeetleEmergence) Update(_ *ecs.World) {
 		idx := i / s.BeetlesPerTree
 		pos := &s.sourceTrees[idx]
 		bp.X, bp.Y = pos.X, pos.Y
-		le.TickOfDeath = time.Tick + int(rng.ExpFloat64()*s.LifeExpectancy)
+		le.TickOfDeath = time.Tick + int(util.ExpFloat64(rng)*s.LifeExpectancy)
 		i++
 	})
 
