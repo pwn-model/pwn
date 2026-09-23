@@ -90,6 +90,13 @@ func setup(width, height, ticks int) *app.App {
 		DensityRadius: 20,
 		DensityWeight: 1.0,
 	})
+	app.AddSystem(&sys.BeetleMovement{
+		StepsPerTick:          7,
+		DurationFeeding:       12,
+		DurationEggLaying:     6,
+		LeaveTreeProbability:  0.5,
+		RandomWalkProbability: 0.5,
+	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{
 		TickOfYear:         20,
