@@ -34,6 +34,7 @@ type BeetleMovement struct {
 
 	healthyPresence res.Grid[bool]
 	damagedPresence res.Grid[bool]
+	feedingInfected res.Grid[uint32]
 
 	width  int
 	height int
@@ -59,9 +60,12 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
 
 	ws := ecs.GetResource[res.WorldSize](world)
+	s.width, s.height = ws.Width(), ws.Height()
 	s.healthyPresence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
 	s.damagedPresence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
-	s.width, s.height = ws.Width(), ws.Height()
+	s.feedingInfected = res.NewGrid[uint32](ws.Width(), ws.Height(), ws.CellSize())
+
+	ecs.AddResource(world, &res.FeedingInfectedBeetles{Grid: s.feedingInfected})
 }
 
 // Update the system.
@@ -69,12 +73,14 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 	tick := s.timeRes.Get().Tick
 	src := s.randRes.Get()
 	rng := rand.New(src)
+
 	healthyField := s.healthyFieldRes.Get().Grid
 	damagedField := s.damagedFieldRes.Get().Grid
 	var field res.Grid[float64]
 	var presence res.Grid[bool]
 
 	presenceCalculated := false
+	s.feedingInfected.Fill(0)
 
 	q := s.filter.Query()
 	for q.NextTable() {
@@ -112,7 +118,8 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 					continue
 				}
 
-				// TODO: something with the tree...
+				feeding := s.feedingInfected.Get(pos.X, pos.Y)
+				s.feedingInfected.Set(pos.X, pos.Y, feeding+1)
 			}
 		}
 	}

@@ -62,7 +62,7 @@ func setup(width, height, ticks int) *app.App {
 	})
 	app.AddSystem(&sys.RandomRelease{
 		TickOfInfection: 0,
-		NumTrees:        100,
+		NumTrees:        10,
 		CellX:           10,
 		CellY:           10,
 	})
@@ -94,7 +94,7 @@ func setup(width, height, ticks int) *app.App {
 		StepsPerTick:          7,
 		DurationFeeding:       12,
 		DurationEggLaying:     6,
-		LeaveTreeProbability:  0.5,
+		LeaveTreeProbability:  0.1,
 		RandomWalkProbability: 0.5,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
@@ -105,6 +105,9 @@ func setup(width, height, ticks int) *app.App {
 		KernelRadius:       300,
 		BeetlesPerTree:     2.2,
 		TreesPerBeetle:     1,
+	})
+	app.AddSystem(&sys.NematodeInfection{
+		InfectionProbability: 0.02,
 	})
 
 	// Stop criterion

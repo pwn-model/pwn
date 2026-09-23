@@ -21,3 +21,8 @@ type HealthyTreeAttraction struct {
 type DamagedTreeAttraction struct {
 	Grid[float64]
 }
+
+// FeedingInfectedBeetles resource.
+type FeedingInfectedBeetles struct {
+	Grid[uint32]
+}
