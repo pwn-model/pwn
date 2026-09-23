@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupTreeAttractionDensityPeakWorld(t *testing.T) (*ecs.World, *ecs.Map1[comp.Position]) {
+func setupTreeAttractionWorld(t *testing.T) (*ecs.World, *ecs.Map1[comp.Position]) {
 	t.Helper()
 
 	a := app.New()
@@ -34,11 +34,11 @@ func placeIsolatedTreeAndCluster(posMap *ecs.Map1[comp.Position]) {
 	}
 }
 
-func TestTreeAttractionDensityPeakSingleSourceDecaysMultiplicatively(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionSingleSourceDecaysMultiplicatively(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	posMap.NewEntity(&comp.Position{X: 50, Y: 25})
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 50, DensityRadius: 20, DensityWeight: 0}
+	s := TreeAttraction{TickOfYear: 0, Scale: 50, DensityRadius: 20, DensityWeight: 0}
 	s.Initialize(world)
 	s.Update(world)
 
@@ -52,26 +52,26 @@ func TestTreeAttractionDensityPeakSingleSourceDecaysMultiplicatively(t *testing.
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
 }
 
-func TestTreeAttractionDensityPeakHasNoHardCutoff(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionHasNoHardCutoff(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	posMap.NewEntity(&comp.Position{X: 50, Y: 25})
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 10, DensityRadius: 20, DensityWeight: 0}
+	s := TreeAttraction{TickOfYear: 0, Scale: 10, DensityRadius: 20, DensityWeight: 0}
 	s.Initialize(world)
 	s.Update(world)
 
-	// Unlike TreeAttraction/TreeAttractionSweep, multiplicative decay never
-	// hits an exact 0, however far from any source: even at the far
-	// opposite corner of the world, the value must be strictly positive.
+	// Multiplicative decay never hits an exact 0, however far from any
+	// source: even at the far opposite corner of the world, the value must
+	// be strictly positive.
 	grid := ecs.GetResource[res.HealthyTreeAttraction](world)
 	assert.Greater(t, grid.Get(199, 49), 0.0)
 }
 
-func TestTreeAttractionDensityPeakZeroWeightFavoursCloserIsolatedTree(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionZeroWeightFavoursCloserIsolatedTree(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	placeIsolatedTreeAndCluster(posMap)
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 0}
+	s := TreeAttraction{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 0}
 	s.Initialize(world)
 	s.Update(world)
 
@@ -84,11 +84,11 @@ func TestTreeAttractionDensityPeakZeroWeightFavoursCloserIsolatedTree(t *testing
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
 }
 
-func TestTreeAttractionDensityPeakWeightLetsFartherDenserClusterWin(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	placeIsolatedTreeAndCluster(posMap)
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 1}
+	s := TreeAttraction{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 1}
 	s.Initialize(world)
 	s.Update(world)
 
@@ -99,9 +99,7 @@ func TestTreeAttractionDensityPeakWeightLetsFartherDenserClusterWin(t *testing.T
 	// isolated tree's ((1/25)*decay^10) despite being 3x farther away, and
 	// despite both being scaled down by the same normalization -- a
 	// deterministic "pick the highest neighbour" consumer is now pulled
-	// towards the farther, denser cluster instead of the closer lone tree,
-	// which a final DensityWeight exponent (TreeAttractionRecursive,
-	// TreeAttractionSweep) can never achieve.
+	// towards the farther, denser cluster instead of the closer lone tree.
 	grid := ecs.GetResource[res.HealthyTreeAttraction](world)
 	decay := math.Exp(-10.0 / 200.0)
 	maxCount := math.Pow(2*2+1, 2) // DensityRadius=20, CellSize=10 -> densityRadiusCells=2.
@@ -117,15 +115,15 @@ func TestTreeAttractionDensityPeakWeightLetsFartherDenserClusterWin(t *testing.T
 // never exceed the largest seed anywhere in the grid, no cell of the
 // resulting field can exceed 1 either, however densely populated the world
 // is or how high DensityWeight is set.
-func TestTreeAttractionDensityPeakFieldNeverExceedsOne(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionFieldNeverExceedsOne(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	for dx := -2; dx <= 2; dx++ {
 		for dy := -2; dy <= 2; dy++ {
 			posMap.NewEntity(&comp.Position{X: 50 + dx, Y: 25 + dy})
 		}
 	}
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 5}
+	s := TreeAttraction{TickOfYear: 0, Scale: 200, DensityRadius: 20, DensityWeight: 5}
 	s.Initialize(world)
 	s.Update(world)
 
@@ -147,11 +145,11 @@ func TestTreeAttractionDensityPeakFieldNeverExceedsOne(t *testing.T) {
 // source at 1 directly, without ever consulting DensityRadius -- so an
 // invalid DensityRadius (here, not a multiple of the world's 10m cell size)
 // must not panic during Initialize.
-func TestTreeAttractionDensityPeakZeroWeightSkipsDensityRadiusValidation(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionZeroWeightSkipsDensityRadiusValidation(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	posMap.NewEntity(&comp.Position{X: 50, Y: 25})
 
-	s := TreeAttractionDensityPeak{TickOfYear: 0, Scale: 50, DensityRadius: 7, DensityWeight: 0}
+	s := TreeAttraction{TickOfYear: 0, Scale: 50, DensityRadius: 7, DensityWeight: 0}
 	assert.NotPanics(t, func() { s.Initialize(world) })
 	s.Update(world)
 
@@ -159,11 +157,11 @@ func TestTreeAttractionDensityPeakZeroWeightSkipsDensityRadiusValidation(t *test
 	assert.InDelta(t, 1.0, grid.Get(50, 25), 1e-9)
 }
 
-func TestTreeAttractionDensityPeakSkipsWrongTickOfYear(t *testing.T) {
-	world, posMap := setupTreeAttractionDensityPeakWorld(t)
+func TestTreeAttractionSkipsWrongTickOfYear(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
 	posMap.NewEntity(&comp.Position{X: 50, Y: 25})
 
-	s := TreeAttractionDensityPeak{TickOfYear: 5, Scale: 200, DensityRadius: 20, DensityWeight: 1}
+	s := TreeAttraction{TickOfYear: 5, Scale: 200, DensityRadius: 20, DensityWeight: 1}
 	s.Initialize(world)
 	s.Update(world)
 

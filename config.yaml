@@ -41,11 +41,11 @@ systems:
     beetles_per_tree: 10
     life_expectancy: 5
   
-  - type: pwn.sys.TreeAttractionDensityPeak
+  - type: pwn.sys.TreeAttraction
     tick_of_year: 18
     scale: 50
-    density_radius: 50
-    density_weight: 0.8
+    density_radius: 20
+    density_weight: 1.0
     
   - type: pwn.sys.BeetleMortality
     
