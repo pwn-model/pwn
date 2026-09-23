@@ -41,9 +41,11 @@ systems:
     beetles_per_tree: 10
     life_expectancy: 5
   
-  - type: pwn.sys.TreeAttraction
+  - type: pwn.sys.TreeAttractionDensityPeak
     tick_of_year: 18
     radius: 50
+    density_radius: 20
+    density_weight: 0.5
     
   - type: pwn.sys.BeetleMortality
     
@@ -105,4 +107,5 @@ windows:
           type: pwn.obs.maps.TreeAttraction
           damaged_trees: true
         colors: viridis
-        max: 10
+        min: 0
+        max: -2

@@ -76,9 +76,15 @@ func setup(width, height, ticks int) *app.App {
 		BeetlesPerTree: 10,
 		LifeExpectancy: 5,
 	})
-	app.AddSystem(&sys.TreeAttraction{
-		TickOfYear: 18,
-		Radius:     100,
+	// app.AddSystem(&sys.TreeAttractionRecursive{
+	// 	TickOfYear:    18,
+	// 	Scale:         50,
+	// 	DensityWeight: 1.0,
+	// })
+	app.AddSystem(&sys.TreeAttractionSweep{
+		TickOfYear:    18,
+		Scale:         50,
+		DensityWeight: 1.0,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{

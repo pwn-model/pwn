@@ -1,6 +1,8 @@
 package maps
 
 import (
+	"math"
+
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
@@ -41,7 +43,7 @@ func (o *TreeAttraction) Values(_ *ecs.World) []float64 {
 	w, h := o.grid.Width(), o.grid.Height()
 	for x := range w {
 		for y := range h {
-			o.values[y*w+x] = o.grid.Get(x, y)
+			o.values[y*w+x] = math.Log(o.grid.Get(x, y))
 		}
 	}
 
