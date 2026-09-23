@@ -8,6 +8,7 @@ import (
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
@@ -66,7 +67,8 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 // Update the system.
 func (s *BeetleMovement) Update(world *ecs.World) {
 	tick := s.timeRes.Get().Tick
-	rng := rand.New(s.randRes.Get())
+	src := s.randRes.Get()
+	rng := rand.New(src)
 	healthyField := s.healthyFieldRes.Get().Grid
 	damagedField := s.damagedFieldRes.Get().Grid
 	var field res.Grid[float64]
@@ -100,7 +102,7 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 				treeHere := presence.Get(pos.X, pos.Y)
 				if !treeHere || rng.Float64() >= s.LeaveTreeProbability {
 					if rng.Float64() < s.RandomWalkProbability {
-						pos.X, pos.Y = s.randomNeighbor(rng, pos.X, pos.Y)
+						pos.X, pos.Y = s.randomNeighbor(src, pos.X, pos.Y)
 					} else {
 						pos.X, pos.Y = s.maxFieldNeighbor(&field, pos.X, pos.Y)
 					}
@@ -120,9 +122,14 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 // randomNeighbor picks a uniformly random in-bounds Moore-neighborhood cell
 // of (x, y), by rejection sampling: interior cells (the common case) resolve
 // in a single draw, and only edge/corner cells ever redraw.
-func (s *BeetleMovement) randomNeighbor(rng *rand.Rand, x, y int) (int, int) {
+//
+// Draws the offset index via util.RandRange rather than (*rand.Rand).IntN:
+// IntN(8) would take stdlib's power-of-two fast path (a single masked draw,
+// no rejection sampling), which diverges from the sibling Julia
+// implementation's frozen_rand_range -- see util.RandRange's doc comment.
+func (s *BeetleMovement) randomNeighbor(src rand.Source, x, y int) (int, int) {
 	for {
-		o := neighborOffsets[rng.IntN(len(neighborOffsets))]
+		o := neighborOffsets[util.RandRange(src, uint64(len(neighborOffsets)))]
 		nx, ny := x+o[0], y+o[1]
 		if nx >= 0 && nx < s.width && ny >= 0 && ny < s.height {
 			return nx, ny

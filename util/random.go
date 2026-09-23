@@ -25,14 +25,21 @@ import (
 func Shuffle[T any](src rand.Source, s []T) {
 	n := len(s)
 	for i := 1; i < n; i++ {
-		j := randRange(src, uint64(i+1))
+		j := RandRange(src, uint64(i+1))
 		s[i], s[j] = s[j], s[i]
 	}
 }
 
-// randRange draws a uniform uint64 in [0, n) via Lemire's multiply-high
-// method with rejection sampling near the bias boundary.
-func randRange(src rand.Source, n uint64) uint64 {
+// RandRange draws a uniform uint64 in [0, n) via Lemire's multiply-high
+// method with rejection sampling near the bias boundary -- the same
+// algorithm Shuffle uses (see its doc comment), exported so that any other
+// caller needing an index draw that stays bit-identical with the sibling
+// Julia implementation's frozen_rand_range (PWNModel.jl/src/util/shuffle.jl)
+// can reuse it, rather than reaching for math/rand/v2's own (*Rand).IntN:
+// that takes a different, undocumented fast path for power-of-two n (a
+// single masked draw, no rejection sampling at all), which silently
+// diverges from Julia's algorithm whenever n happens to be a power of two.
+func RandRange(src rand.Source, n uint64) uint64 {
 	hi, lo := bits.Mul64(src.Uint64(), n)
 	if lo < n {
 		t := -n % n
