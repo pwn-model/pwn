@@ -11,3 +11,13 @@ type TreeGrid struct {
 type SpaceGrid struct {
 	Grid[ecs.Entity]
 }
+
+// HealthyTreeAttraction resource.
+type HealthyTreeAttraction struct {
+	Grid[float64]
+}
+
+// DamagedTreeAttraction resource.
+type DamagedTreeAttraction struct {
+	Grid[float64]
+}

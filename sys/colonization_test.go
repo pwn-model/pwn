@@ -1,6 +1,7 @@
 package sys
 
 import (
+	"math"
 	"testing"
 
 	"github.com/mlange-42/ark-tools/app"
@@ -55,7 +56,7 @@ func TestBuildKernelNormalizesWeights(t *testing.T) {
 func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 	world := setupColonizationWorld(t, 30, 30, 10)
 
-	s := Colonization{CellSize: 10, KernelScale: 1, KernelRadius: 1, BeetlesPerTree: 10}
+	s := Colonization{CellSize: 10, KernelHalfDistance: math.Ln2, KernelRadius: 1, BeetlesPerTree: 10}
 	s.Initialize(world)
 
 	// Place the source away from any edge so the kernel's full support
@@ -112,12 +113,12 @@ func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
 	ecs.AddResource(world, &res.Time{TickOfYear: 0})
 
 	s := Colonization{
-		TickOfYear:     5,
-		CellSize:       100,
-		KernelScale:    1,
-		KernelRadius:   0,
-		BeetlesPerTree: 100,
-		TreesPerBeetle: 100,
+		TickOfYear:         5,
+		CellSize:           100,
+		KernelHalfDistance: math.Ln2,
+		KernelRadius:       0,
+		BeetlesPerTree:     100,
+		TreesPerBeetle:     100,
 	}
 	s.Initialize(world)
 
@@ -143,12 +144,12 @@ func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
 	// for the cell's single susceptible tree to (effectively) exactly 1,
 	// regardless of the RNG draw.
 	s := Colonization{
-		TickOfYear:     3,
-		CellSize:       100,
-		KernelScale:    1,
-		KernelRadius:   0,
-		BeetlesPerTree: 5,
-		TreesPerBeetle: 5,
+		TickOfYear:         3,
+		CellSize:           100,
+		KernelHalfDistance: math.Ln2,
+		KernelRadius:       0,
+		BeetlesPerTree:     5,
+		TreesPerBeetle:     5,
 	}
 	s.Initialize(world)
 
@@ -174,12 +175,12 @@ func TestColonizationNoColonizationWithoutSource(t *testing.T) {
 	ecs.AddResource(world, &res.Time{TickOfYear: 3})
 
 	s := Colonization{
-		TickOfYear:     3,
-		CellSize:       100,
-		KernelScale:    1,
-		KernelRadius:   2,
-		BeetlesPerTree: 1000,
-		TreesPerBeetle: 1000,
+		TickOfYear:         3,
+		CellSize:           100,
+		KernelHalfDistance: math.Ln2,
+		KernelRadius:       2,
+		BeetlesPerTree:     1000,
+		TreesPerBeetle:     1000,
 	}
 	s.Initialize(world)
 

@@ -37,7 +37,7 @@ func TestLoadShippedConfig(t *testing.T) {
 	_, ok := csv.Observer.(*obs.TreePopulation)
 	assert.True(t, ok)
 
-	require.Len(t, cfg.Windows, 4)
+	require.Len(t, cfg.Windows, 5)
 
 	timeSeriesWindow := cfg.Windows[0]
 	require.Len(t, timeSeriesWindow.Drawers, 1)

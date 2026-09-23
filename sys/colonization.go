@@ -22,8 +22,11 @@ type Colonization struct {
 	TickOfYear int `yaml:"tick_of_year"`
 	// CellSize of the dispersal grid, in meters.
 	CellSize int `yaml:"cell_size"`
-	// KernelScale is the dispersal kernel's decay length, in meters.
-	KernelScale float64 `yaml:"kernel_scale"`
+	// KernelHalfDistance is the distance, in meters, at which the dispersal
+	// kernel's (pre-normalization) weight has decayed to half its value at
+	// the source cell -- i.e. a beetle is half as likely to land this far
+	// from a colonized tree as to land in its own cell.
+	KernelHalfDistance float64 `yaml:"kernel_half_distance"`
 	// KernelRadius is the dispersal kernel's cutoff radius, in meters.
 	// Rounded up to full cells.
 	KernelRadius int `yaml:"kernel_radius"`
@@ -123,7 +126,7 @@ func (s *Colonization) Initialize(world *ecs.World) {
 	s.arrivals = res.NewGrid[float64](width, height, s.CellSize)
 	s.probability = res.NewGrid[float64](width, height, s.CellSize)
 
-	s.kernel = buildKernel(util.CeilDiv(s.KernelRadius, s.CellSize), s.KernelScale/float64(s.CellSize))
+	s.kernel = buildKernel(util.CeilDiv(s.KernelRadius, s.CellSize), s.KernelHalfDistance/(math.Ln2*float64(s.CellSize)))
 }
 
 // Update the system.

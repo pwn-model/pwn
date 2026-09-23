@@ -17,6 +17,7 @@ func init() {
 
 // InitTrees system
 type InitTrees struct {
+	CellProbability  float64 `yaml:"cell_probability"`
 	TreeProbability  float64 `yaml:"tree_probability"`
 	DamagePrevalence float64 `yaml:"damage_prevalence"`
 	BeetlePrevalence float64 `yaml:"beetle_prevalence"`
@@ -39,6 +40,9 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 
 	for x := range grid.Width() {
 		for y := range grid.Height() {
+			if rand.Float64() > s.CellProbability {
+				continue
+			}
 			cells := cells[:0]
 			damaged := damaged[:0]
 			colonized := colonized[:0]
