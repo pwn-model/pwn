@@ -54,6 +54,13 @@ systems:
     half_distance: 50
     density_radius: 20
     density_weight: 1.0
+  
+  - type: pwn.sys.BeetleMovement
+    steps_per_tick:          7
+    duration_feeding:       12
+    duration_egg_laying:     6
+    leave_tree_probability:  0.5
+    random_walk_probability: 0.5
 
   - type: pwn.sys.BeetleMortality
 
@@ -104,9 +111,9 @@ windows:
       - type: ark-pixel.plot.Image
         observer:
           type: pwn.obs.maps.Beetles
-          cell_size: 100
+          cell_size: 10
         colors: viridis
-        max: 50
+        max: 10
 
   - title: Attraction
     drawers:
