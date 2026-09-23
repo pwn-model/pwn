@@ -33,20 +33,31 @@ func init() {
 // how far a beetle can actually fly, not by this field's shape. And unlike
 // summing contributions together, max can never exceed the largest seed
 // anywhere in the grid (multiplying by a factor in (0,1) only ever shrinks
-// a value), so the field stays stable and bounded for any Scale.
+// a value), so the field stays stable and bounded for any HalfDistance.
 type TreeAttraction struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
 
-	// Scale is the e-folding decay length, in meters: a source's
-	// contribution to a cell decay^chamfer_distance(cell, source) meters
-	// away, where decay = exp(-CellSize/Scale).
-	Scale int `yaml:"scale"`
+	// HalfDistance is the distance, in meters, at which a source's
+	// contribution has decayed to half its value at the source cell --
+	// i.e. a beetle is half as attracted to a cell this far from a tree as
+	// to the tree's own cell. Internally, decay = exp(-CellSize*ln(2) /
+	// HalfDistance), so a cell chamfer_distance(cell, source) meters from a
+	// source ends up with decay^chamfer_distance(cell, source) of that
+	// source's seed value.
+	//
+	// HalfDistance also sets the exchange rate between distance and
+	// density: a source whose seed is k times another's can out-compete it
+	// up to HalfDistance*log2(k) meters farther away (see DensityWeight).
+	// A larger HalfDistance both spreads attraction farther and lets
+	// density matter over a longer range; a small one makes DensityWeight
+	// nearly irrelevant, since almost nothing can outweigh raw proximity.
+	HalfDistance float64 `yaml:"half_distance"`
 
 	// DensityRadius is the radius, in meters, within which a source tree's
 	// own same-type neighbours are counted towards its local density.
-	// Independent of Scale: this is the "how clustered is this source"
-	// scale, not the "how far does its seed reach" scale. Must be a
-	// multiple of the world's base cell size. Unused, and not validated,
+	// Independent of HalfDistance: this is the "how clustered is this
+	// source" scale, not the "how far does its seed reach" scale. Must be
+	// a multiple of the world's base cell size. Unused, and not validated,
 	// when DensityWeight is 0 -- see DensityWeight and fillFromQuery.
 	DensityRadius int `yaml:"density_radius"`
 
@@ -69,7 +80,7 @@ type TreeAttraction struct {
 	filterDamaged *ecs.Filter1[comp.Position]
 
 	// decay is the per-orthogonal-cell-step decay factor derived from
-	// Scale; a diagonal step uses decay^sqrt(2).
+	// HalfDistance; a diagonal step uses decay^sqrt(2).
 	decay float64
 
 	// densityRadiusCells is DensityRadius expressed in grid cells. Left at
@@ -106,7 +117,7 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
 
 	ws := ecs.GetResource[res.WorldSize](world)
-	s.decay = math.Exp(-float64(ws.CellSize()) / float64(s.Scale))
+	s.decay = math.Exp(-float64(ws.CellSize()) * math.Ln2 / s.HalfDistance)
 
 	s.healthyAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	s.damagedAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())

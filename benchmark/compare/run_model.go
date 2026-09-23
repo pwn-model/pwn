@@ -78,18 +78,18 @@ func setup(width, height, ticks int) *app.App {
 	})
 	app.AddSystem(&sys.TreeAttraction{
 		TickOfYear:    18,
-		Scale:         50,
+		HalfDistance:  50,
 		DensityRadius: 20,
 		DensityWeight: 1.0,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{
-		TickOfYear:     20,
-		CellSize:       100,
-		KernelScale:    100,
-		KernelRadius:   400,
-		BeetlesPerTree: 2.2,
-		TreesPerBeetle: 1,
+		TickOfYear:         20,
+		CellSize:           100,
+		KernelHalfDistance: 50,
+		KernelRadius:       300,
+		BeetlesPerTree:     2.2,
+		TreesPerBeetle:     1,
 	})
 
 	// Stop criterion
