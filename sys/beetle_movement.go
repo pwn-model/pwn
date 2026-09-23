@@ -88,28 +88,27 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 			pos := &positions[i]
 			et := &emergenceTicks[i]
 
-			if tick < et.TickOfEmergence+s.DurationFeeding {
+			switch {
+			case tick < et.TickOfEmergence+s.DurationFeeding:
 				field = healthyField
 				presence = s.healthyPresence
-			} else if tick < et.TickOfEmergence+s.DurationFeeding+s.DurationEggLaying {
+			case tick < et.TickOfEmergence+s.DurationFeeding+s.DurationEggLaying:
 				field = damagedField
 				presence = s.damagedPresence
-			} else {
+			default:
 				continue // TODO: remove beetle?
 			}
 
 			for range s.StepsPerTick {
-				treeHere := presence.Get(pos.X, pos.Y)
-				if !treeHere || rng.Float64() >= s.LeaveTreeProbability {
+				if !presence.Get(pos.X, pos.Y) || rng.Float64() >= s.LeaveTreeProbability {
 					if rng.Float64() < s.RandomWalkProbability {
 						pos.X, pos.Y = s.randomNeighbor(src, pos.X, pos.Y)
 					} else {
 						pos.X, pos.Y = s.maxFieldNeighbor(&field, pos.X, pos.Y)
 					}
-					treeHere = presence.Get(pos.X, pos.Y)
 				}
 
-				if !treeHere {
+				if !presence.Get(pos.X, pos.Y) {
 					continue
 				}
 
