@@ -102,7 +102,7 @@ func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
 	// towards the farther, denser cluster instead of the closer lone tree.
 	grid := ecs.GetResource[res.HealthyTreeAttraction](world)
 	decay := math.Exp(-10.0 / 200.0)
-	maxCount := math.Pow(2*2+1, 2) // DensityRadius=20, CellSize=10 -> densityRadiusCells=2.
+	maxCount := (2.0*2.0 + 1.0) * (2.0*2.0 + 1.0) // DensityRadius=20, CellSize=10 -> densityRadiusCells=2.
 	isolatedValue := (1.0 / maxCount) * math.Pow(decay, 10)
 	clusterValue := (9.0 / maxCount) * math.Pow(decay, 39)
 	assert.Greater(t, clusterValue, isolatedValue, "sanity check: chosen Scale must make the cluster the stronger source")
