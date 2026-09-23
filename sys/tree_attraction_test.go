@@ -53,6 +53,45 @@ func TestTreeAttractionSingleSourceDecaysMultiplicatively(t *testing.T) {
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
 }
 
+// Two independently configured instances -- one for healthy trees, one for
+// damaged -- can be run in the same world side by side (as they would be
+// added to a real scheduler twice), each driven only by its own tree type
+// and its own HalfDistance, without interfering with each other.
+func TestTreeAttractionHealthyAndDamagedInstancesAreIndependent(t *testing.T) {
+	world, posMap := setupTreeAttractionWorld(t)
+	posMap.NewEntity(&comp.Position{X: 50, Y: 25})
+
+	damagedMap := ecs.NewMap2[comp.Position, comp.Damaged](world)
+	damagedMap.NewEntity(&comp.Position{X: 80, Y: 25}, &comp.Damaged{})
+
+	healthyHalfDistance := 50 * math.Ln2
+	healthy := TreeAttraction{TickOfYear: 0, HalfDistance: healthyHalfDistance, DensityRadius: 20, DensityWeight: 0}
+	healthy.Initialize(world)
+
+	damagedHalfDistance := 200 * math.Ln2
+	damaged := TreeAttraction{
+		TickOfYear: 0, DamagedTrees: true, HalfDistance: damagedHalfDistance, DensityRadius: 20, DensityWeight: 0,
+	}
+	damaged.Initialize(world)
+
+	healthy.Update(world)
+	damaged.Update(world)
+
+	healthyGrid := ecs.GetResource[res.HealthyTreeAttraction](world)
+	damagedGrid := ecs.GetResource[res.DamagedTreeAttraction](world)
+
+	// The healthy field is driven only by the healthy tree at (50, 25), 10
+	// cells from the query point, using the healthy instance's own decay.
+	healthyDecay := math.Exp(-10.0 * math.Ln2 / healthyHalfDistance)
+	assert.InDelta(t, math.Pow(healthyDecay, 10), healthyGrid.Get(60, 25), 1e-9)
+
+	// The damaged field is driven only by the damaged tree at (80, 25), 20
+	// cells from the same query point, using the damaged instance's own
+	// (different) decay -- confirming the two run independently.
+	damagedDecay := math.Exp(-10.0 * math.Ln2 / damagedHalfDistance)
+	assert.InDelta(t, math.Pow(damagedDecay, 20), damagedGrid.Get(60, 25), 1e-9)
+}
+
 func TestTreeAttractionHasNoHardCutoff(t *testing.T) {
 	world, posMap := setupTreeAttractionWorld(t)
 	posMap.NewEntity(&comp.Position{X: 50, Y: 25})

@@ -78,6 +78,14 @@ func setup(width, height, ticks int) *app.App {
 	})
 	app.AddSystem(&sys.TreeAttraction{
 		TickOfYear:    18,
+		DamagedTrees:  true,
+		HalfDistance:  50,
+		DensityRadius: 20,
+		DensityWeight: 1.0,
+	})
+	app.AddSystem(&sys.TreeAttraction{
+		TickOfYear:    18,
+		DamagedTrees:  false,
 		HalfDistance:  50,
 		DensityRadius: 20,
 		DensityWeight: 1.0,

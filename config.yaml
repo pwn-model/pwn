@@ -43,6 +43,14 @@ systems:
   
   - type: pwn.sys.TreeAttraction
     tick_of_year: 18
+    damaged_trees: true
+    half_distance: 50
+    density_radius: 20
+    density_weight: 1.0
+
+  - type: pwn.sys.TreeAttraction
+    tick_of_year: 18
+    damaged_trees: false
     half_distance: 50
     density_radius: 20
     density_weight: 1.0

@@ -15,27 +15,28 @@ func init() {
 
 // TreeAttraction system.
 //
-// Computes two attraction fields -- one for healthy trees, one for damaged
-// trees -- meant to bias where dispersing beetles fly, for a deterministic
-// consumer that always moves towards whichever neighbouring cell has the
-// highest attraction value.
+// Computes one attraction field, meant to bias where dispersing beetles
+// fly, for a deterministic consumer that always moves towards whichever
+// neighbouring cell has the highest attraction value. It computes healthy-
+// or damaged-tree attraction, never both: add it to the scheduler twice,
+// once with DamagedTrees false and once true, to get both fields -- each
+// instance can use entirely different HalfDistance/DensityRadius/
+// DensityWeight values, since healthy and damaged trees plausibly attract
+// vectors differently.
 //
 // Each source tree seeds fillGrid with its own local occupancy fraction
 // (see fillFromQuery), raised to DensityWeight, instead of a uniform value:
 // a denser cluster starts from a taller seed, so it can out-reach and win
 // cells that a closer but sparser source would otherwise have claimed by
 // max-relaxation.
-//
-// fillGrid propagates these seeds outward via max-relaxation, decaying
-// multiplicatively per step rather than subtracting a fixed cost: unlike
-// subtraction, multiplication never drives a reachable cell to exactly
-// zero, so there's no hard attraction radius -- range is limited only by
-// how far a beetle can actually fly, not by this field's shape. And unlike
-// summing contributions together, max can never exceed the largest seed
-// anywhere in the grid (multiplying by a factor in (0,1) only ever shrinks
-// a value), so the field stays stable and bounded for any HalfDistance.
 type TreeAttraction struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
+
+	// DamagedTrees selects which trees this instance computes attraction
+	// from and which resource it publishes to: false (the default) uses
+	// healthy trees and publishes res.HealthyTreeAttraction, true uses
+	// damaged trees and publishes res.DamagedTreeAttraction.
+	DamagedTrees bool `yaml:"damaged_trees"`
 
 	// HalfDistance is the distance, in meters, at which a source's
 	// contribution has decayed to half its value at the source cell --
@@ -76,8 +77,7 @@ type TreeAttraction struct {
 
 	timeRes ecs.Resource[res.Time]
 
-	filterHealthy *ecs.Filter1[comp.Position]
-	filterDamaged *ecs.Filter1[comp.Position]
+	filter *ecs.Filter1[comp.Position]
 
 	// decay is the per-orthogonal-cell-step decay factor derived from
 	// HalfDistance; a diagonal step uses decay^sqrt(2).
@@ -93,12 +93,11 @@ type TreeAttraction struct {
 	// Left at its zero value when DensityWeight is 0.
 	maxCount float64
 
-	healthyAttraction res.Grid[float64]
-	damagedAttraction res.Grid[float64]
+	attraction res.Grid[float64]
 
-	// presence is a reused 0/1 scratch grid for whichever type
-	// (healthy/damaged) is currently being seeded. Left unallocated when
-	// DensityWeight is 0, since fillFromQuery's fast path never touches it.
+	// presence is a reused 0/1 scratch grid for seeding. Left unallocated
+	// when DensityWeight is 0, since fillFromQuery's fast path never
+	// touches it.
 	presence res.Grid[float64]
 
 	// sat is a reused (width+1)*(height+1) summed-area-table buffer for
@@ -113,16 +112,21 @@ type TreeAttraction struct {
 func (s *TreeAttraction) Initialize(world *ecs.World) {
 	s.timeRes = s.timeRes.New(world)
 
-	s.filterHealthy = s.filterHealthy.New(world).Without(ecs.C[comp.Damaged]())
-	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
+	if s.DamagedTrees {
+		s.filter = s.filter.New(world).With(ecs.C[comp.Damaged]())
+	} else {
+		s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged]())
+	}
 
 	ws := ecs.GetResource[res.WorldSize](world)
 	s.decay = math.Exp(-float64(ws.CellSize()) * math.Ln2 / s.HalfDistance)
 
-	s.healthyAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
-	s.damagedAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
-	ecs.AddResource(world, &res.HealthyTreeAttraction{Grid: s.healthyAttraction})
-	ecs.AddResource(world, &res.DamagedTreeAttraction{Grid: s.damagedAttraction})
+	s.attraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
+	if s.DamagedTrees {
+		ecs.AddResource(world, &res.DamagedTreeAttraction{Grid: s.attraction})
+	} else {
+		ecs.AddResource(world, &res.HealthyTreeAttraction{Grid: s.attraction})
+	}
 
 	// At DensityWeight 0, occupancy^0 is 1 regardless of local density (see
 	// fillFromQuery's fast path), so DensityRadius is never consulted:
@@ -153,11 +157,8 @@ func (s *TreeAttraction) Update(_ *ecs.World) {
 func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 
 func (s *TreeAttraction) calcAttraction() {
-	s.fillFromQuery(&s.healthyAttraction, s.filterHealthy)
-	s.fillFromQuery(&s.damagedAttraction, s.filterDamaged)
-
-	s.fillGrid(&s.healthyAttraction)
-	s.fillGrid(&s.damagedAttraction)
+	s.fillFromQuery(&s.attraction, s.filter)
+	s.fillGrid(&s.attraction)
 }
 
 // fillFromQuery seeds the attraction grid: every cell containing a
