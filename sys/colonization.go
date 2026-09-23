@@ -141,6 +141,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 	s.arrivals.Fill(0.0)
 	//s.probability.Fill(0.0)
 
+	// Density of colonized trees.
 	q := s.coloFilter.Query()
 	for q.NextTable() {
 		positions := q.GetColumns()
@@ -157,6 +158,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 	// available for colonization again.
 	s.coloMapper.RemoveBatch(s.coloFilter.Batch(), nil)
 
+	// Density of susceptible trees.
 	qd := s.damagedFilter.Query()
 	for qd.NextTable() {
 		positions := qd.GetColumns()
@@ -170,6 +172,7 @@ func (s *Colonization) Update(_ *ecs.World) {
 	s.calcArrivals()
 	s.calcProbability()
 
+	// Colonization
 	q = s.damagedFilter.Query()
 	for q.NextTable() {
 		entities := q.Entities()
