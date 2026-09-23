@@ -43,9 +43,9 @@ systems:
   
   - type: pwn.sys.TreeAttractionDensityPeak
     tick_of_year: 18
-    radius: 50
-    density_radius: 20
-    density_weight: 0.5
+    scale: 50
+    density_radius: 50
+    density_weight: 0.8
     
   - type: pwn.sys.BeetleMortality
     
@@ -107,5 +107,5 @@ windows:
           type: pwn.obs.maps.TreeAttraction
           damaged_trees: true
         colors: viridis
-        min: 0
-        max: -2
+        min: -8
+        max: 0

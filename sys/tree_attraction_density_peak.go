@@ -25,36 +25,56 @@ func init() {
 // candidate cells has the highest value -- it only ever rescales the
 // numbers, never a decision made from them.
 //
-// So this system leaves TreeAttraction's fillGrid completely untouched --
-// still a plain max-relaxation distance transform -- and instead makes the
-// SEED PEAK fed into it depend on each source's own local tree density
-// (see fillFromQuery). A denser cluster starts from a taller peak, so it
-// can out-reach and win cells that a closer but sparser source would
-// otherwise have claimed by max-relaxation: a real, comparison-relevant
-// effect, decided before propagation ever compares sources against each
-// other, rather than an inert transform applied after the fact.
+// So this system makes the SEED fed into fillGrid depend on each source's
+// own local tree density instead (see fillFromQuery). A denser cluster
+// starts from a taller seed, so it can out-reach and win cells that a
+// closer but sparser source would otherwise have claimed by
+// max-relaxation: a real, comparison-relevant effect, decided before
+// propagation ever compares sources against each other, rather than an
+// inert transform applied after the fact.
 //
-// Only one of TreeAttraction, TreeAttractionSweep, TreeAttractionRecursive
-// or TreeAttractionDensityPeak is meant to be active in a given config,
+// fillGrid itself keeps TreeAttraction's max combinator (never sum --
+// see [TreeAttractionSum]'s doc comment for why summing across this
+// function's 4-neighbour-per-step structure diverges), but decays
+// multiplicatively instead of subtracting a fixed cost per step. Unlike
+// subtraction, multiplication never drives a reachable cell to exactly
+// zero, so there's no hard radius the way TreeAttraction/TreeAttractionSweep
+// have -- and unlike sum, max can never exceed the largest seed anywhere in
+// the grid (multiplying by a factor in (0,1) only ever shrinks a value), so
+// this stays just as stable and bounded as TreeAttraction, for any Scale.
+//
+// Only one of TreeAttraction, TreeAttractionSweep, TreeAttractionRecursive,
+// TreeAttractionDensityPeak, TreeAttractionSum or
+// TreeAttractionDensityRecursive is meant to be active in a given config,
 // since they all publish to the same [res.HealthyTreeAttraction] /
 // [res.DamagedTreeAttraction] resources.
 type TreeAttractionDensityPeak struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
-	Radius     int `yaml:"radius"`       // Base radius of a single, isolated source tree, in meters.
+
+	// Scale is the e-folding decay length, in meters: a source's
+	// contribution to a cell decay^chamfer_distance(cell, source) meters
+	// away, where decay = exp(-CellSize/Scale).
+	Scale int `yaml:"scale"`
 
 	// DensityRadius is the radius, in meters, within which a source tree's
 	// own same-type neighbours are counted towards its local density.
-	// Independent of Radius: this is the "how clustered is this source"
-	// scale, not the "how far does its peak reach" scale. Must be a
-	// multiple of the world's base cell size.
+	// Independent of Scale: this is the "how clustered is this source"
+	// scale, not the "how far does its seed reach" scale. Must be a
+	// multiple of the world's base cell size. Unused, and not validated,
+	// when DensityWeight is 0 -- see DensityWeight and fillFromQuery.
 	DensityRadius int `yaml:"density_radius"`
 
-	// DensityWeight is the exponent applied to a source's local tree count
-	// (which always includes the source itself, so it's always >= 1) to
-	// scale its peak: 0 recovers plain TreeAttraction (every source peaks
-	// at Radius, regardless of clustering), 1 makes peak scale linearly
-	// with local tree count, and >1 makes denser clusters reach
-	// disproportionately farther than the same trees spread out.
+	// DensityWeight is the exponent applied to a source's local occupancy
+	// fraction (its same-type neighbour count within DensityRadius,
+	// divided by the number of cells that fit in that radius -- so always
+	// in (0, 1]) to scale its seed: 0 makes every source seed at 1
+	// regardless of clustering (a plain single-nearest/strongest-source
+	// decay field), 1 makes the seed scale linearly with local occupancy,
+	// and >1 makes denser clusters reach disproportionately farther than
+	// the same trees spread out. Since occupancy is normalized to (0, 1],
+	// every seed -- and so, by fillGrid's max-relaxation, the whole
+	// resulting field -- stays within (0, 1] regardless of DensityRadius
+	// or how densely populated the world is.
 	DensityWeight float64 `yaml:"density_weight"`
 
 	timeRes ecs.Resource[res.Time]
@@ -62,20 +82,34 @@ type TreeAttractionDensityPeak struct {
 	filterHealthy *ecs.Filter1[comp.Position]
 	filterDamaged *ecs.Filter1[comp.Position]
 
-	// densityRadiusCells is DensityRadius expressed in grid cells.
+	// decay is the per-orthogonal-cell-step decay factor derived from
+	// Scale; a diagonal step uses decay^sqrt(2), mirroring
+	// TreeAttraction's sqrt(2) diagonal cost.
+	decay float64
+
+	// densityRadiusCells is DensityRadius expressed in grid cells. Left at
+	// its zero value when DensityWeight is 0.
 	densityRadiusCells int
+
+	// maxCount is the number of cells in a full (2*densityRadiusCells+1)
+	// square window, i.e. the largest localCount can ever be. Dividing by
+	// it turns a raw neighbour count into an occupancy fraction in (0, 1].
+	// Left at its zero value when DensityWeight is 0.
+	maxCount float64
 
 	healthyAttraction res.Grid[float64]
 	damagedAttraction res.Grid[float64]
 
 	// presence is a reused 0/1 scratch grid for whichever type
-	// (healthy/damaged) is currently being seeded.
+	// (healthy/damaged) is currently being seeded. Left unallocated when
+	// DensityWeight is 0, since fillFromQuery's fast path never touches it.
 	presence res.Grid[float64]
 
 	// sat is a reused (width+1)*(height+1) summed-area-table buffer for
 	// counting each source's local density, laid out the same column-major
 	// way as res.Grid with an extra leading zero row/column, as in
-	// TreeAttractionSweep's boxBlur.
+	// TreeAttractionSweep's boxBlur. Left unallocated when DensityWeight is
+	// 0, since fillFromQuery's fast path never touches it.
 	sat []float64
 }
 
@@ -87,21 +121,27 @@ func (s *TreeAttractionDensityPeak) Initialize(world *ecs.World) {
 	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
 
 	ws := ecs.GetResource[res.WorldSize](world)
-	if s.Radius%ws.CellSize() != 0 {
-		panic("Radius of the dispersal submodel must be a multiple of the world's base cell size.")
-	}
-	if s.DensityRadius%ws.CellSize() != 0 {
-		panic("DensityRadius of the dispersal submodel must be a multiple of the world's base cell size.")
-	}
-	s.densityRadiusCells = s.DensityRadius / ws.CellSize()
+	s.decay = math.Exp(-float64(ws.CellSize()) / float64(s.Scale))
 
 	s.healthyAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	s.damagedAttraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	ecs.AddResource(world, &res.HealthyTreeAttraction{Grid: s.healthyAttraction})
 	ecs.AddResource(world, &res.DamagedTreeAttraction{Grid: s.damagedAttraction})
 
-	s.presence = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
-	s.sat = make([]float64, (ws.Width()+1)*(ws.Height()+1))
+	// At DensityWeight 0, occupancy^0 is 1 regardless of local density (see
+	// fillFromQuery's fast path), so DensityRadius is never consulted:
+	// don't require it to be valid, and don't allocate the buffers that
+	// only the density count needs.
+	if s.DensityWeight != 0 {
+		if s.DensityRadius%ws.CellSize() != 0 {
+			panic("DensityRadius of the dispersal submodel must be a multiple of the world's base cell size.")
+		}
+		s.densityRadiusCells = s.DensityRadius / ws.CellSize()
+		s.maxCount = float64((2*s.densityRadiusCells + 1) * (2*s.densityRadiusCells + 1))
+
+		s.presence = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
+		s.sat = make([]float64, (ws.Width()+1)*(ws.Height()+1))
+	}
 }
 
 // Update the system.
@@ -117,22 +157,35 @@ func (s *TreeAttractionDensityPeak) Update(_ *ecs.World) {
 func (s *TreeAttractionDensityPeak) Finalize(_ *ecs.World) {}
 
 func (s *TreeAttractionDensityPeak) calcAttraction() {
-	basePeak := float64(s.Radius / s.healthyAttraction.CellSize())
-
-	s.fillFromQuery(&s.healthyAttraction, s.filterHealthy, basePeak)
-	s.fillFromQuery(&s.damagedAttraction, s.filterDamaged, basePeak)
+	s.fillFromQuery(&s.healthyAttraction, s.filterHealthy)
+	s.fillFromQuery(&s.damagedAttraction, s.filterDamaged)
 
 	s.fillGrid(&s.healthyAttraction)
 	s.fillGrid(&s.damagedAttraction)
 }
 
 // fillFromQuery seeds the attraction grid: every cell containing a
-// matching tree is set to basePeak scaled by that source's own local
-// density (its same-type neighbour count within DensityRadius, raised to
-// DensityWeight), everything else to 0. fillGrid then propagates these
-// peaks outward exactly as in TreeAttraction.
-func (s *TreeAttractionDensityPeak) fillFromQuery(grid *res.Grid[float64], filter *ecs.Filter1[comp.Position], basePeak float64) {
+// matching tree is set to that source's own local occupancy fraction
+// (localCount divided by maxCount, always in (0, 1]) raised to
+// DensityWeight, everything else to 0. fillGrid then propagates these
+// seeds outward.
+func (s *TreeAttractionDensityPeak) fillFromQuery(grid *res.Grid[float64], filter *ecs.Filter1[comp.Position]) {
 	grid.Fill(0.0)
+
+	if s.DensityWeight == 0 {
+		// occupancy^0 is 1 for any occupancy, so every source's seed is 1
+		// regardless of local density: skip counting it altogether.
+		q := filter.Query()
+		for q.NextTable() {
+			positions := q.GetColumns()
+			for i := range positions {
+				pos := &positions[i]
+				grid.Set(pos.X, pos.Y, 1.0)
+			}
+		}
+		return
+	}
+
 	s.presence.Fill(0.0)
 
 	q := filter.Query()
@@ -151,8 +204,8 @@ func (s *TreeAttractionDensityPeak) fillFromQuery(grid *res.Grid[float64], filte
 		positions := q.GetColumns()
 		for i := range positions {
 			pos := &positions[i]
-			count := s.localCount(pos.X, pos.Y)
-			grid.Set(pos.X, pos.Y, basePeak*math.Pow(count, s.DensityWeight))
+			occupancy := s.localCount(pos.X, pos.Y) / s.maxCount
+			grid.Set(pos.X, pos.Y, math.Pow(occupancy, s.DensityWeight))
 		}
 	}
 }
@@ -196,22 +249,27 @@ func (s *TreeAttractionDensityPeak) localCount(x, y int) float64 {
 	return sat[idx(x2+1, y2+1)] - sat[idx(x1, y2+1)] - sat[idx(x2+1, y1)] + sat[idx(x1, y1)]
 }
 
-// fillGrid turns the seeded peaks into a smooth attraction field by
-// propagating each source's value outward, decreasing by 1 per orthogonal
-// step and sqrt(2) per diagonal step, floored at 0. Identical to
-// TreeAttraction's fillGrid -- see its doc comment for why two passes
-// suffice -- since this system's only difference from TreeAttraction is
-// how the peaks fed into this function are computed, not how they're
-// propagated.
+// fillGrid turns the seeded values into a smooth attraction field by
+// propagating each source's value outward, multiplying by decay per
+// orthogonal step and decay^sqrt(2) per diagonal step -- unlike
+// TreeAttraction's fillGrid, which subtracts a fixed cost per step and
+// floors at 0, multiplicative decay never drives a reachable cell to
+// exactly 0, so there is no hard radius. It's still exactly
+// TreeAttraction's two-pass max-relaxation otherwise -- see its doc comment
+// for why two passes suffice -- and still just as stable and bounded,
+// since max of values shrunk by a factor in (0,1) can never exceed the
+// largest seed anywhere in the grid (unlike sum, see TreeAttractionSum's
+// doc comment for why summing across this same neighbour structure
+// diverges instead).
 func (s *TreeAttractionDensityPeak) fillGrid(grid *res.Grid[float64]) {
 	w, h := grid.Width(), grid.Height()
 
 	// Offsets of the already-updated neighbours seen by a sweep moving in
 	// increasing (forward) resp. decreasing (backward) x/y, paired with
-	// their step cost.
+	// their step decay factor.
 	forward := [4][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}}
 	backward := [4][2]int{{1, 1}, {1, 0}, {1, -1}, {0, 1}}
-	costs := [4]float64{math.Sqrt2, 1, math.Sqrt2, 1}
+	decays := [4]float64{math.Pow(s.decay, math.Sqrt2), s.decay, math.Pow(s.decay, math.Sqrt2), s.decay}
 
 	relax := func(x, y int, offsets [4][2]int) {
 		best := grid.Get(x, y)
@@ -220,12 +278,9 @@ func (s *TreeAttractionDensityPeak) fillGrid(grid *res.Grid[float64]) {
 			if nx < 0 || nx >= w || ny < 0 || ny >= h {
 				continue
 			}
-			if v := grid.Get(nx, ny) - costs[i]; v > best {
+			if v := grid.Get(nx, ny) * decays[i]; v > best {
 				best = v
 			}
-		}
-		if best < 0 {
-			best = 0
 		}
 		grid.Set(x, y, best)
 	}
