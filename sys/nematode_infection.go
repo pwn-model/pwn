@@ -39,7 +39,7 @@ func (s *NematodeInfection) Initialize(world *ecs.World) {
 }
 
 // Update the system.
-func (s *NematodeInfection) Update(world *ecs.World) {
+func (s *NematodeInfection) Update(_ *ecs.World) {
 	tick := s.timeRes.Get().Tick
 	feeding := s.feedingRes.Get().Grid
 	rng := rand.New(s.randRes.Get())
