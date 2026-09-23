@@ -19,7 +19,7 @@ func TestInitTrees(t *testing.T) {
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{TreeProbability: 0.9}
+	s := InitTrees{CellProbability: 1.0, TreeProbability: 0.9}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
@@ -58,7 +58,7 @@ func TestInitTreesDamaged(t *testing.T) {
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{TreeProbability: 1.0, DamagePrevalence: 0.2}
+	s := InitTrees{CellProbability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
@@ -102,7 +102,7 @@ func TestInitTreesColonized(t *testing.T) {
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
+	s := InitTrees{CellProbability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)

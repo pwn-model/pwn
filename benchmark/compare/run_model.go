@@ -47,6 +47,7 @@ func setup(width, height, ticks int) *app.App {
 	// Initialization
 	app.AddSystem(&sys.InitGrids{})
 	app.AddSystem(&sys.InitTrees{
+		CellProbability:  1.0,
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 		BeetlePrevalence: 0.2,
@@ -74,6 +75,11 @@ func setup(width, height, ticks int) *app.App {
 		TickOfYear:     19,
 		BeetlesPerTree: 10,
 		LifeExpectancy: 5,
+	})
+	app.AddSystem(&sys.TreeAttraction{
+		TickOfYear: 18,
+		RadiusNear: 100,
+		RadiusFar:  500,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{

@@ -22,7 +22,7 @@ func setupRandomInfectionWorld(t *testing.T) *ecs.World {
 	gs := InitGrids{}
 	gs.Initialize(a.World)
 
-	ts := InitTrees{TreeProbability: 1.0}
+	ts := InitTrees{CellProbability: 1.0, TreeProbability: 1.0}
 	ts.Initialize(a.World)
 
 	return a.World
