@@ -60,7 +60,7 @@ func setup(width, height, ticks int) *app.App {
 	app.AddSystem(&sys.DiseaseCourse{
 		TicksToDamage: 8,
 	})
-	app.AddSystem(&sys.RandomInfection{
+	app.AddSystem(&sys.RandomRelease{
 		TickOfInfection: 0,
 		NumTrees:        100,
 		CellX:           10,

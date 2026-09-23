@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupRandomInfectionWorld(t *testing.T) *ecs.World {
+func setupRandomReleaseWorld(t *testing.T) *ecs.World {
 	t.Helper()
 
 	a := app.New()
@@ -28,10 +28,10 @@ func setupRandomInfectionWorld(t *testing.T) *ecs.World {
 	return a.World
 }
 
-func TestRandomInfection(t *testing.T) {
-	world := setupRandomInfectionWorld(t)
+func TestRandomRelease(t *testing.T) {
+	world := setupRandomReleaseWorld(t)
 
-	s := RandomInfection{TickOfInfection: 3, NumTrees: 10, CellX: 0, CellY: 0}
+	s := RandomRelease{TickOfInfection: 3, NumTrees: 10, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
 	time := res.Time{}
@@ -78,8 +78,8 @@ func TestRandomInfection(t *testing.T) {
 	q.Close()
 }
 
-func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
-	world := setupRandomInfectionWorld(t)
+func TestRandomReleaseSkipsIneligibleTrees(t *testing.T) {
+	world := setupRandomReleaseWorld(t)
 
 	space := ecs.GetResource[res.SpaceGrid](world)
 	target := space.Get(0, 0)
@@ -104,7 +104,7 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 		infectMapper.Add(e, &comp.Infected{InfectionTick: -1})
 	}
 
-	s := RandomInfection{TickOfInfection: 0, NumTrees: 5, CellX: 0, CellY: 0}
+	s := RandomRelease{TickOfInfection: 0, NumTrees: 5, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
 	ecs.AddResource(world, &res.Time{Tick: 0})
@@ -125,11 +125,11 @@ func TestRandomInfectionSkipsIneligibleTrees(t *testing.T) {
 	assert.Equal(t, 1, newlyInfected)
 }
 
-func TestRandomInfectionCapsAtAvailableTrees(t *testing.T) {
-	world := setupRandomInfectionWorld(t)
+func TestRandomReleaseCapsAtAvailableTrees(t *testing.T) {
+	world := setupRandomReleaseWorld(t)
 
 	// Coarse cell (0, 0) holds 10*10 = 100 trees; request far more than that.
-	s := RandomInfection{TickOfInfection: 0, NumTrees: 1000, CellX: 0, CellY: 0}
+	s := RandomRelease{TickOfInfection: 0, NumTrees: 1000, CellX: 0, CellY: 0}
 	s.Initialize(world)
 
 	ecs.AddResource(world, &res.Time{Tick: 0})
@@ -140,10 +140,10 @@ func TestRandomInfectionCapsAtAvailableTrees(t *testing.T) {
 	q.Close()
 }
 
-func TestRandomInfectionOnlyTargetsSpecifiedCell(t *testing.T) {
-	world := setupRandomInfectionWorld(t)
+func TestRandomReleaseOnlyTargetsSpecifiedCell(t *testing.T) {
+	world := setupRandomReleaseWorld(t)
 
-	s := RandomInfection{TickOfInfection: 0, NumTrees: 10, CellX: 1, CellY: 1}
+	s := RandomRelease{TickOfInfection: 0, NumTrees: 10, CellX: 1, CellY: 1}
 	s.Initialize(world)
 
 	ecs.AddResource(world, &res.Time{Tick: 0})

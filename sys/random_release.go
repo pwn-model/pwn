@@ -10,11 +10,11 @@ import (
 )
 
 func init() {
-	config.Register[RandomInfection]()
+	config.Register[RandomRelease]()
 }
 
-// RandomInfection infects the given number of trees in the given grid cell.
-type RandomInfection struct {
+// RandomRelease infects the given number of trees in the given grid cell.
+type RandomRelease struct {
 	TickOfInfection int `yaml:"tick_of_infection"`
 	NumTrees        int `yaml:"num_trees"`
 	CellX           int `yaml:"cell_x"`
@@ -26,14 +26,14 @@ type RandomInfection struct {
 }
 
 // Initialize the system.
-func (s *RandomInfection) Initialize(world *ecs.World) {
+func (s *RandomRelease) Initialize(world *ecs.World) {
 	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged](), ecs.C[comp.Infected]())
 	s.mapper = s.mapper.New(world)
 	s.timeRes = s.timeRes.New(world)
 }
 
 // Update the system.
-func (s *RandomInfection) Update(world *ecs.World) {
+func (s *RandomRelease) Update(world *ecs.World) {
 	tick := s.timeRes.Get().Tick
 
 	if tick != s.TickOfInfection {
@@ -59,4 +59,4 @@ func (s *RandomInfection) Update(world *ecs.World) {
 }
 
 // Finalize the system.
-func (s *RandomInfection) Finalize(_ *ecs.World) {}
+func (s *RandomRelease) Finalize(_ *ecs.World) {}

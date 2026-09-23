@@ -25,7 +25,7 @@ systems:
   - type: pwn.sys.DiseaseCourse
     ticks_to_damage: 8
 
-  - type: pwn.sys.RandomInfection
+  - type: pwn.sys.RandomRelease
     tick_of_infection: 0
     num_trees: 100
     cell_x: 2
