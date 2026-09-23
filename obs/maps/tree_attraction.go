@@ -13,7 +13,6 @@ func init() {
 // TreeAttraction map observer.
 type TreeAttraction struct {
 	DamagedTrees bool `yaml:"damaged_trees"`
-	FarRange     bool `yaml:"far_range"`
 
 	grid   res.Grid[float64]
 	values []float64
@@ -22,17 +21,9 @@ type TreeAttraction struct {
 // Initialize the observer.
 func (o *TreeAttraction) Initialize(w *ecs.World) {
 	if o.DamagedTrees {
-		if o.FarRange {
-			o.grid = ecs.GetResource[res.DamagedTreeAttractionFar](w).Grid
-		} else {
-			o.grid = ecs.GetResource[res.DamagedTreeAttractionNear](w).Grid
-		}
+		o.grid = ecs.GetResource[res.DamagedTreeAttraction](w).Grid
 	} else {
-		if o.FarRange {
-			o.grid = ecs.GetResource[res.HealthyTreeAttractionFar](w).Grid
-		} else {
-			o.grid = ecs.GetResource[res.HealthyTreeAttractionNear](w).Grid
-		}
+		o.grid = ecs.GetResource[res.HealthyTreeAttraction](w).Grid
 	}
 	o.values = make([]float64, o.grid.Width()*o.grid.Height())
 }

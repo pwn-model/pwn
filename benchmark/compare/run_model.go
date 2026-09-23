@@ -78,8 +78,7 @@ func setup(width, height, ticks int) *app.App {
 	})
 	app.AddSystem(&sys.TreeAttraction{
 		TickOfYear: 18,
-		RadiusNear: 100,
-		RadiusFar:  500,
+		Radius:     100,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{

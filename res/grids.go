@@ -12,22 +12,12 @@ type SpaceGrid struct {
 	Grid[ecs.Entity]
 }
 
-// HealthyTreeAttractionNear resource.
-type HealthyTreeAttractionNear struct {
+// HealthyTreeAttraction resource.
+type HealthyTreeAttraction struct {
 	Grid[float64]
 }
 
-// HealthyTreeAttractionFar resource.
-type HealthyTreeAttractionFar struct {
-	Grid[float64]
-}
-
-// DamagedTreeAttractionNear resource.
-type DamagedTreeAttractionNear struct {
-	Grid[float64]
-}
-
-// DamagedTreeAttractionFar resource.
-type DamagedTreeAttractionFar struct {
+// DamagedTreeAttraction resource.
+type DamagedTreeAttraction struct {
 	Grid[float64]
 }
