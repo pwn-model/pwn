@@ -21,7 +21,7 @@ type Config struct {
 	// [app.Systems].TPS). Values <= 0 mean as fast as possible.
 	TPS float64 `yaml:"tps"`
 	// FPS is the app's frames-per-second cap for UI systems.
-	// Values <= 0 mean as fast as possible.
+	// A zero/unset value defaults to 30 FPS. Values < 0 sync FPS with TPS.
 	FPS float64 `yaml:"fps"`
 	// Resources lists the resources to add to the world. Each entry's
 	// "type" selects the resource implementation (see [RegisterResource]);
