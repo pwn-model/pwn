@@ -87,6 +87,12 @@ systems:
     file: out/tree_pop.csv
 
 windows:
+  - title: Monitor
+    drawers:
+      - type: ark-pixel.monitor.Monitor
+        sample_interval: 333ms
+      - type: ark-pixel.monitor.Controls
+
   - title: Colonization time series
     drawers:
       - type: ark-pixel.plot.TimeSeries
