@@ -42,6 +42,7 @@ func RunFromConfig(configPath string) error {
 
 	a := app.New()
 	a.TPS = cfg.TPS
+	a.FPS = cfg.FPS
 
 	// The PRNG is hard-coded to Xoshiro256++, to stay bit-identical with
 	// the sibling Julia implementation; only its seed is configurable.
