@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/mazznoer/colorgrad"
+	"github.com/mlange-42/ark-pixel/monitor"
 	"github.com/mlange-42/ark-pixel/plot"
 	"github.com/mlange-42/ark-tools/reporter"
 	"github.com/pwn-model/pwn/config"
@@ -60,6 +62,15 @@ type imageConfig struct {
 	Max      float64                     `yaml:"max"`
 }
 
+// monitorConfig is monitor.Monitor's config shape: identical, but with
+// snake_case field names. SampleInterval is a duration string like "500ms".
+type monitorConfig struct {
+	PlotCapacity   int           `yaml:"plot_capacity"`
+	SampleInterval time.Duration `yaml:"sample_interval"`
+	HidePlots      bool          `yaml:"hide_plots"`
+	HideArchetypes bool          `yaml:"hide_archetypes"`
+}
+
 // csvReporterConfig is reporter.CSV's config shape: its Observer is
 // resolved via the Row observer registry.
 type csvReporterConfig struct {
@@ -90,6 +101,17 @@ func init() {
 			Max:      c.Max,
 		}
 	})
+
+	config.RegisterDrawerFunc(func(c monitorConfig) *monitor.Monitor {
+		return &monitor.Monitor{
+			PlotCapacity:   c.PlotCapacity,
+			SampleInterval: c.SampleInterval,
+			HidePlots:      c.HidePlots,
+			HideArchetypes: c.HideArchetypes,
+		}
+	})
+
+	config.RegisterDrawer[monitor.Controls]()
 
 	config.RegisterFunc(func(c csvReporterConfig) *reporter.CSV {
 		return &reporter.CSV{
