@@ -39,7 +39,7 @@ func TestLoadShippedConfig(t *testing.T) {
 
 	require.Len(t, cfg.Windows, 6)
 
-	timeSeriesWindow := cfg.Windows[0]
+	timeSeriesWindow := cfg.Windows[1]
 	require.Len(t, timeSeriesWindow.Drawers, 1)
 	ts, ok := timeSeriesWindow.Drawers[0].Drawer.(*plot.TimeSeries)
 	require.True(t, ok)
@@ -47,12 +47,12 @@ func TestLoadShippedConfig(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "Tree colonization", ts.Labels.Title)
 
-	treesWindow := cfg.Windows[1]
+	treesWindow := cfg.Windows[2]
 	require.Len(t, treesWindow.Drawers, 1)
 	_, ok = treesWindow.Drawers[0].Drawer.(*maps.Trees)
 	assert.True(t, ok)
 
-	imageWindow := cfg.Windows[2]
+	imageWindow := cfg.Windows[3]
 	require.Len(t, imageWindow.Drawers, 1)
 	img, ok := imageWindow.Drawers[0].Drawer.(*plot.Image)
 	require.True(t, ok)
