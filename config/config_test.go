@@ -143,6 +143,7 @@ windows:
 
 func TestConfig_UnmarshalSystems_UnknownParam(t *testing.T) {
 	var cfg config.Config
+	//nolint:misspell // "cell_probabilty" is a deliberately misspelled key.
 	err := yaml.Unmarshal([]byte(`
 systems:
   - type: pwn.sys.InitGrids
@@ -153,7 +154,7 @@ systems:
 `), &cfg)
 	// Both entries' unknown keys are reported, each with its own line.
 	assert.ErrorContains(t, err, "line 4: field bogus not found in type sys.InitGrids")
-	assert.ErrorContains(t, err, "line 7: field cell_probabilty not found in type sys.InitTrees")
+	assert.ErrorContains(t, err, "line 7: field cell_probabilty not found in type sys.InitTrees") //nolint:misspell
 }
 
 func TestConfig_UnmarshalResources_UnknownParam(t *testing.T) {
