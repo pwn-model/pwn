@@ -10,6 +10,7 @@ import (
 	"github.com/pwn-model/pwn/obs/maps"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	yaml "go.yaml.in/yaml/v3"
 )
 
 // TestLoadShippedConfig loads the repo's own config.yaml and checks its
@@ -60,4 +61,28 @@ func TestLoadShippedConfig(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, 100, colonizationMap.CellSize)
 	assert.Equal(t, 5.0, img.Max)
+}
+
+// TestUnknownKeysInRegisteredDrawers checks that unknown keys are also
+// caught inside a registered drawer/reporter's nested, plain struct fields
+// (plot.Labels) and nested observers, which only exist in this package.
+func TestUnknownKeysInRegisteredDrawers(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+windows:
+  - drawers:
+      - type: ark-pixel.plot.TimeSeries
+        observer:
+          type: pwn.obs.TreeColonization
+        labels:
+          titel: Trees
+systems:
+  - type: ark-tools.reporter.CSV
+    observer:
+      type: pwn.obs.TreePopulation
+      bogus: 1
+    file: out.csv
+`), &cfg)
+	assert.ErrorContains(t, err, "line 8: field titel not found in type plot.Labels")
+	assert.ErrorContains(t, err, "line 13: field bogus not found in type obs.TreePopulation")
 }

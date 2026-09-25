@@ -1,6 +1,8 @@
 package config_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mlange-42/ark-tools/app"
@@ -105,6 +107,86 @@ resources:
 func TestLoad_FileNotFound(t *testing.T) {
 	_, err := config.Load("does_not_exist.yaml")
 	assert.Error(t, err)
+}
+
+// loadString writes src to a temporary file and loads it via config.Load,
+// for the checks that only Load itself does (unlike a bare yaml.Unmarshal
+// into a Config), such as rejecting unknown top-level keys.
+func loadString(t *testing.T, src string) (*config.Config, error) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	require.NoError(t, os.WriteFile(path, []byte(src), 0o600))
+	return config.Load(path)
+}
+
+func TestLoad_EmptyFile(t *testing.T) {
+	cfg, err := loadString(t, "")
+	require.NoError(t, err)
+	assert.Empty(t, cfg.Systems)
+}
+
+func TestLoad_UnknownTopLevelKey(t *testing.T) {
+	_, err := loadString(t, `
+seeed: 1
+`)
+	assert.ErrorContains(t, err, "line 2: field seeed not found")
+}
+
+func TestLoad_UnknownWindowKey(t *testing.T) {
+	_, err := loadString(t, `
+windows:
+  - title: Trees
+    draw_intervall: 2
+`)
+	assert.ErrorContains(t, err, "line 4: field draw_intervall not found")
+}
+
+func TestConfig_UnmarshalSystems_UnknownParam(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+systems:
+  - type: pwn.sys.InitGrids
+    bogus: 1
+  - type: pwn.sys.InitTrees
+    tree_probability: 0.9
+    cell_probabilty: 0.5
+`), &cfg)
+	// Both entries' unknown keys are reported, each with its own line.
+	assert.ErrorContains(t, err, "line 4: field bogus not found in type sys.InitGrids")
+	assert.ErrorContains(t, err, "line 7: field cell_probabilty not found in type sys.InitTrees")
+}
+
+func TestConfig_UnmarshalResources_UnknownParam(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+resources:
+  - type: pwn.res.WorldSize
+    widht: 4000
+    height: 3000
+    cell_size: 10
+    grid_cell_size: 500
+`), &cfg)
+	assert.ErrorContains(t, err, "line 4: field widht not found")
+}
+
+func TestConfig_UnmarshalWindows_UnknownDrawerParam(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+windows:
+  - drawers:
+      - type: pwn.obs.maps.Trees
+        bogus: 1
+`), &cfg)
+	assert.ErrorContains(t, err, "line 5: field bogus not found")
+}
+
+func TestConfig_NestedObservers_UnknownParam(t *testing.T) {
+	var matrix config.MatrixObserverConfig
+	err := yaml.Unmarshal([]byte(`
+type: pwn.obs.maps.TreeColonization
+cell_sise: 100
+`), &matrix)
+	assert.ErrorContains(t, err, "line 3: field cell_sise not found")
 }
 
 // TestConfig_Apply builds and runs an app to completion, as an end-to-end
