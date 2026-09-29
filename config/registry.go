@@ -60,8 +60,11 @@ func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry) (I, error)
 	}
 
 	cfg := entry.newConfig()
+	if err := checkKnownFields(node, reflect.TypeOf(cfg), "type"); err != nil {
+		return zero, err
+	}
 	if err := node.Decode(cfg); err != nil {
-		return zero, fmt.Errorf("decoding %q: %w", typ, err)
+		return zero, wrapDecodeError(err, "decoding %q", typ)
 	}
 
 	v, ok := entry.build(cfg).(I)
@@ -69,6 +72,19 @@ func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry) (I, error)
 		return zero, fmt.Errorf("%q does not implement the expected interface", typ)
 	}
 	return v, nil
+}
+
+// wrapDecodeError adds the entry's type name to an error from decoding its
+// parameters. A *yaml.TypeError (e.g. an unknown key in a nested entry) is
+// passed through as is instead: it already names the line and Go type, and
+// only an unwrapped *yaml.TypeError returned from UnmarshalYAML lets the
+// enclosing decoder carry on and report all such errors at once, rather
+// than aborting at the first.
+func wrapDecodeError(err error, format string, args ...any) error {
+	if _, ok := err.(*yaml.TypeError); ok {
+		return err
+	}
+	return fmt.Errorf(format+": %w", append(args, err)...)
 }
 
 // registry maps a system's config type name to its buildEntry.

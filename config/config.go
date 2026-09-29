@@ -1,8 +1,12 @@
 package config
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"os"
+	"reflect"
 
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -91,8 +95,11 @@ func (c *ResourceConfig) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	cfg := entry.newConfig()
+	if err := checkKnownFields(node, reflect.TypeOf(cfg), "type"); err != nil {
+		return err
+	}
 	if err := node.Decode(cfg); err != nil {
-		return fmt.Errorf("decoding resource %q: %w", typ, err)
+		return wrapDecodeError(err, "decoding resource %q", typ)
 	}
 
 	c.apply = func(world *ecs.World) { entry.apply(world, cfg) }
@@ -182,6 +189,8 @@ func (wc WindowConfig) build() *window.Window {
 }
 
 // Load reads and parses a model config file.
+//
+// Unknown (e.g. misspelled) keys are an error, at any nesting level.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -189,7 +198,11 @@ func Load(path string) (*Config, error) {
 	}
 
 	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	// io.EOF means an empty file, which (as with yaml.Unmarshal) is just an
+	// empty config.
+	if err := dec.Decode(&cfg); err != nil && !errors.Is(err, io.EOF) {
 		return nil, fmt.Errorf("parsing config %q: %w", path, err)
 	}
 	return &cfg, nil
