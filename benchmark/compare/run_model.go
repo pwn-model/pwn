@@ -5,7 +5,6 @@ import (
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/resource"
-	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/res"
 	"github.com/pwn-model/pwn/sys"
@@ -111,7 +110,7 @@ func setup(width, height, ticks int) *app.App {
 	})
 
 	// Stop criterion
-	app.AddSystem(&system.FixedTermination{Steps: int64(ticks)})
+	app.AddSystem(&sys.FixedTermination{Steps: ticks})
 
 	app.Initialize()
 

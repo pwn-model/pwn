@@ -9,16 +9,16 @@ import (
 )
 
 func init() {
-	config.RegisterObserver[TreeColonization]()
+	config.RegisterObserver[TreeColonizationMap]()
 }
 
-// TreeColonization reports the number of colonized trees per grid cell of
+// TreeColonizationMap reports the number of colonized trees per grid cell of
 // CellSize (in meters), aggregated over the base tree grid.
 //
 // Mirrors the sys.Colonization system's density aggregation, but exposed as
 // an observer.Matrix (github.com/mlange-42/ark-tools/observer) for plotting,
 // e.g. with plot.Image from github.com/mlange-42/ark-pixel/plot.
-type TreeColonization struct {
+type TreeColonizationMap struct {
 	// CellSize of the aggregation grid, in meters. Must be a multiple of
 	// the world's base cell size.
 	CellSize int `yaml:"cell_size"`
@@ -35,7 +35,7 @@ type TreeColonization struct {
 }
 
 // Initialize the observer.
-func (o *TreeColonization) Initialize(w *ecs.World) {
+func (o *TreeColonizationMap) Initialize(w *ecs.World) {
 	o.coloFilter = o.coloFilter.New(w).With(ecs.C[comp.Colonized]())
 
 	ws := ecs.GetResource[res.WorldSize](w)
@@ -49,15 +49,15 @@ func (o *TreeColonization) Initialize(w *ecs.World) {
 }
 
 // Update the observer.
-func (o *TreeColonization) Update(_ *ecs.World) {}
+func (o *TreeColonizationMap) Update(_ *ecs.World) {}
 
 // Dims returns the matrix dimensions.
-func (o *TreeColonization) Dims() (int, int) {
+func (o *TreeColonizationMap) Dims() (int, int) {
 	return o.width, o.height
 }
 
 // Values for the current model tick, in row-major order (i.e. idx = row*ncols + col).
-func (o *TreeColonization) Values(_ *ecs.World) []float64 {
+func (o *TreeColonizationMap) Values(_ *ecs.World) []float64 {
 	for i := range o.counts {
 		o.counts[i] = 0
 	}
@@ -76,16 +76,16 @@ func (o *TreeColonization) Values(_ *ecs.World) []float64 {
 }
 
 // X axis coordinates.
-func (o *TreeColonization) X(c int) float64 {
+func (o *TreeColonizationMap) X(c int) float64 {
 	return float64(c * o.CellSize)
 }
 
 // Y axis coordinates.
-func (o *TreeColonization) Y(r int) float64 {
+func (o *TreeColonizationMap) Y(r int) float64 {
 	return float64(r * o.CellSize)
 }
 
 // toCoords calculates map-grid coords from tree grid coords.
-func (o *TreeColonization) toCoords(x, y int) (int, int) {
+func (o *TreeColonizationMap) toCoords(x, y int) (int, int) {
 	return x / o.unitsPerCell, y / o.unitsPerCell
 }

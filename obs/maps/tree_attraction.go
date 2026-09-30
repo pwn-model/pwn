@@ -9,11 +9,12 @@ import (
 )
 
 func init() {
-	config.RegisterObserver[TreeAttraction]()
+	config.RegisterObserver[TreeAttractionMap]()
 }
 
-// TreeAttraction map observer.
-type TreeAttraction struct {
+// TreeAttractionMap reports the log of the attraction field of damaged or healthy
+// trees (see DamagedTrees) per cell of the attraction grid.
+type TreeAttractionMap struct {
 	DamagedTrees bool `yaml:"damaged_trees"`
 
 	grid   res.Grid[float64]
@@ -21,7 +22,7 @@ type TreeAttraction struct {
 }
 
 // Initialize the observer.
-func (o *TreeAttraction) Initialize(w *ecs.World) {
+func (o *TreeAttractionMap) Initialize(w *ecs.World) {
 	if o.DamagedTrees {
 		o.grid = ecs.GetResource[res.DamagedTreeAttraction](w).Grid
 	} else {
@@ -31,15 +32,15 @@ func (o *TreeAttraction) Initialize(w *ecs.World) {
 }
 
 // Update the observer.
-func (o *TreeAttraction) Update(_ *ecs.World) {}
+func (o *TreeAttractionMap) Update(_ *ecs.World) {}
 
 // Dims returns the matrix dimensions.
-func (o *TreeAttraction) Dims() (int, int) {
+func (o *TreeAttractionMap) Dims() (int, int) {
 	return o.grid.Width(), o.grid.Height()
 }
 
 // Values for the current model tick, in row-major order (i.e. idx = row*ncols + col).
-func (o *TreeAttraction) Values(_ *ecs.World) []float64 {
+func (o *TreeAttractionMap) Values(_ *ecs.World) []float64 {
 	w, h := o.grid.Width(), o.grid.Height()
 	for x := range w {
 		for y := range h {
@@ -51,11 +52,11 @@ func (o *TreeAttraction) Values(_ *ecs.World) []float64 {
 }
 
 // X axis coordinates.
-func (o *TreeAttraction) X(c int) float64 {
+func (o *TreeAttractionMap) X(c int) float64 {
 	return float64(c * o.grid.CellSize())
 }
 
 // Y axis coordinates.
-func (o *TreeAttraction) Y(r int) float64 {
+func (o *TreeAttractionMap) Y(r int) float64 {
 	return float64(r * o.grid.CellSize())
 }

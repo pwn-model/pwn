@@ -15,10 +15,20 @@ func init() {
 
 // RandomRelease infects the given number of trees in the given grid cell.
 type RandomRelease struct {
+	// TickOfInfection is the model tick at which trees are infected.
 	TickOfInfection int `yaml:"tick_of_infection"`
-	NumTrees        int `yaml:"num_trees"`
-	CellX           int `yaml:"cell_x"`
-	CellY           int `yaml:"cell_y"`
+	// NumTrees is the number of trees to infect. Capped at the number of
+	// undamaged, uninfected trees in the cell.
+	NumTrees int `yaml:"num_trees"`
+	// CellX and CellY are the 0-based column and row of the release cell
+	// in the coarse res.SpaceGrid (cells of WorldSize's grid_cell_size
+	// meters), counted from the world origin. E.g. with grid_cell_size 500,
+	// cell (2, 1) covers x in [1000, 1500) and y in [500, 1000) meters.
+	//
+	// The sibling Julia implementation uses the same 0-based convention,
+	// so that the same config file selects the same cell in both.
+	CellX int `yaml:"cell_x"`
+	CellY int `yaml:"cell_y"`
 
 	filter  *ecs.Filter2[comp.Position, comp.InCell]
 	mapper  *ecs.Map1[comp.Infected]

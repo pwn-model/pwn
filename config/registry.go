@@ -6,10 +6,6 @@ package config
 import (
 	"fmt"
 	"reflect"
-	"runtime/debug"
-	"sort"
-	"strings"
-	"sync"
 
 	"github.com/mlange-42/ark-pixel/window"
 	"github.com/mlange-42/ark-tools/app"
@@ -30,13 +26,11 @@ type buildEntry struct {
 	build     func(cfg any) any // *C -> the constructed value
 }
 
-// register records, in reg under T's qualifiedName, a way to decode a
-// config shape C and turn it into a T via build.
+// register records, in reg under T's typeName, a way to decode a config
+// shape C and turn it into a T via build.
 func register[C any, T any](reg map[string]buildEntry, build func(C) T) {
-	name := qualifiedName(reflect.TypeFor[T]())
-	if _, ok := reg[name]; ok {
-		panic(fmt.Sprintf("config: type %q is already registered", name))
-	}
+	name := typeName[T]()
+	checkName(name, reg)
 	reg[name] = buildEntry{
 		newConfig: func() any { return new(C) },
 		build:     func(cfg any) any { return build(*cfg.(*C)) },
@@ -90,10 +84,15 @@ func wrapDecodeError(err error, format string, args ...any) error {
 // registry maps a system's config type name to its buildEntry.
 var registry = map[string]buildEntry{}
 
-// Register makes a system type available for use in config files, under a
-// name derived from the type itself: "<module>.<package>.<Type>", e.g.
-// "pwn.sys.InitTrees" or "ark-tools.system.FixedTermination". There is
-// nothing to name and nothing that can drift out of sync with the type.
+// Register makes a system type available for use in config files, under
+// its bare type name (see [typeName]), e.g. "InitTrees". There is nothing
+// to name and nothing that can drift out of sync with the type.
+//
+// Bare type names (rather than package-qualified ones) are what the
+// sibling Julia implementation uses too, so that the same config file
+// works for both. The flip side is that names must be unique per registry
+// (systems, resources, drawers, observers): registering a second type
+// under a taken name panics, and one of the two types must be renamed.
 //
 // T is the system's concrete (value) type; PT must be *T and implement
 // [app.System]. Call it as Register[sys.Colonization](), once per system
@@ -131,7 +130,7 @@ type resourceEntry struct {
 var resourceRegistry = map[string]resourceEntry{}
 
 // RegisterResource makes a resource type available for use in config files,
-// under a name derived from the resource type T itself (see [Register]).
+// under the resource type T's own bare type name (see [Register]).
 //
 // Unlike systems, resources have no common construction shape (some need
 // validation, derived fields, and so on), so registration takes a build
@@ -144,10 +143,8 @@ var resourceRegistry = map[string]resourceEntry{}
 // typically from the resource type's own file's init function. C and T are
 // both inferred from build.
 func RegisterResource[C any, T any](build func(C) T) {
-	name := qualifiedName(reflect.TypeFor[T]())
-	if _, ok := resourceRegistry[name]; ok {
-		panic(fmt.Sprintf("config: resource type %q is already registered", name))
-	}
+	name := typeName[T]()
+	checkName(name, resourceRegistry)
 	resourceRegistry[name] = resourceEntry{
 		newConfig: func() any { return new(C) },
 		apply: func(world *ecs.World, cfg any) {
@@ -207,66 +204,25 @@ func RegisterObserverFunc[C any, T any](build func(C) T) {
 	register(observerRegistry, build)
 }
 
-// moduleRoots lists all module paths involved in the build (this module and
-// its dependencies), longest first, for longest-prefix matching in
-// qualifiedName. Computed once, lazily, since it requires reading the
-// binary's embedded build info.
-var (
-	moduleRootsOnce sync.Once
-	moduleRoots     []string
-)
-
-func loadModuleRoots() {
-	moduleRootsOnce.Do(func() {
-		info, ok := debug.ReadBuildInfo()
-		if !ok {
-			return
-		}
-		moduleRoots = append(moduleRoots, info.Main.Path)
-		for _, dep := range info.Deps {
-			moduleRoots = append(moduleRoots, dep.Path)
-		}
-		sort.Slice(moduleRoots, func(i, j int) bool {
-			return len(moduleRoots[i]) > len(moduleRoots[j])
-		})
-	})
-}
-
-// qualifiedName derives a config type-name for t of the form
-// "<module>.<package...>.<Type>": the last path element of the Go module
-// that declares t, followed by its package path relative to that module
-// (with "/" replaced by "."), followed by its type name.
-//
-// E.g. for sys.InitTrees (module "github.com/pwn-model/pwn", package
-// "sys"), this yields "pwn.sys.InitTrees". t may be a pointer type (as it
-// usually is here, since a type is normally registered by its
+// typeName returns T's bare type name, the default config type-name it is
+// registered under, e.g. "InitTrees" for sys.InitTrees. T may be a pointer
+// type (as it usually is here, since a type is normally registered by its
 // interface-implementing pointer); the pointer is transparently unwrapped
 // first.
-func qualifiedName(t reflect.Type) string {
+func typeName[T any]() string {
+	t := reflect.TypeFor[T]()
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
-
-	loadModuleRoots()
-
-	pkgPath := t.PkgPath()
-	for _, root := range moduleRoots {
-		if pkgPath == root {
-			return lastPathElem(root) + "." + t.Name()
-		}
-		if rest, ok := strings.CutPrefix(pkgPath, root+"/"); ok {
-			return lastPathElem(root) + "." + strings.ReplaceAll(rest, "/", ".") + "." + t.Name()
-		}
-	}
-
-	// Fallback for when build info isn't available (e.g. some unusual build
-	// modes): fully-qualified but still unique.
-	return strings.ReplaceAll(pkgPath, "/", ".") + "." + t.Name()
+	return t.Name()
 }
 
-func lastPathElem(path string) string {
-	if i := strings.LastIndexByte(path, '/'); i >= 0 {
-		return path[i+1:]
+// checkName panics if name is empty or already taken in reg.
+func checkName[E any](name string, reg map[string]E) {
+	if name == "" {
+		panic("config: cannot register a type under an empty name")
 	}
-	return path
+	if _, ok := reg[name]; ok {
+		panic(fmt.Sprintf("config: type name %q is already registered; rename one of the two types", name))
+	}
 }

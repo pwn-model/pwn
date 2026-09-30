@@ -3,7 +3,7 @@ tps: 30
 fps: 30
 
 resources:
-  - type: pwn.res.WorldSize
+  - type: WorldSize
     width: 4000
     height: 3000
     cell_size: 10
@@ -11,93 +11,93 @@ resources:
 
 systems:
   # Initialization
-  - type: pwn.sys.InitGrids
+  - type: InitGrids
 
-  - type: pwn.sys.InitTrees
+  - type: InitTrees
     cell_probability: 0.6
     tree_probability: 0.9
     damage_prevalence: 0.03
     beetle_prevalence: 0.2
 
   # Systems
-  - type: pwn.sys.UpdateTime
+  - type: UpdateTime
     ticks_per_year: 52
 
-  - type: pwn.sys.DiseaseCourse
+  - type: DiseaseCourse
     ticks_to_damage: 8
 
-  - type: pwn.sys.RandomRelease
+  - type: RandomRelease
     tick_of_infection: 0
     num_trees: 10
     cell_x: 2
     cell_y: 2
 
-  - type: pwn.sys.DamageTrees
+  - type: DamageTrees
     tick_of_year: 35
     damage_probability: 0.01
     removal_probability: 0.333
 
-  - type: pwn.sys.BeetleEmergence
+  - type: BeetleEmergence
     tick_of_year: 19
     beetles_per_tree: 5
     life_expectancy: 5
   
-  - type: pwn.sys.TreeAttraction
+  - type: TreeAttraction
     tick_of_year: 18
     damaged_trees: true
     half_distance: 50
     density_radius: 20
     density_weight: 1.0
 
-  - type: pwn.sys.TreeAttraction
+  - type: TreeAttraction
     tick_of_year: 18
     damaged_trees: false
     half_distance: 50
     density_radius: 20
     density_weight: 1.0
   
-  - type: pwn.sys.BeetleMovement
+  - type: BeetleMovement
     steps_per_tick:          7
     duration_feeding:       6
     duration_egg_laying:     6
-    leave_tree_probability:  0.1
-    random_walk_probability: 0.5
+    leave_tree_probability:  0.25
+    random_walk_probability: 0.6
 
-  - type: pwn.sys.BeetleMortality
+  - type: BeetleMortality
 
-  - type: pwn.sys.Colonization
+  - type: Colonization
     tick_of_year: 20
     cell_size: 100
     kernel_half_distance: 50
     kernel_radius: 300
-    beetles_per_tree: 2.2
+    beetles_per_tree: 2.0
     trees_per_beetle: 1.0
   
-  - type: pwn.sys.NematodeInfection
+  - type: NematodeInfection
     infection_probability: 0.01
 
   # Stop criterion
-  - type: ark-tools.system.FixedTermination
+  - type: FixedTermination
     steps: 5200
 
   # Reporters
-  - type: ark-tools.reporter.CSV
+  - type: CSV
     observer:
-      type: pwn.obs.TreePopulation
+      type: TreePopulation
     file: out/tree_pop.csv
 
 windows:
   - title: Monitor
     drawers:
-      - type: ark-pixel.monitor.Monitor
+      - type: Monitor
         sample_interval: 333ms
-      - type: ark-pixel.monitor.Controls
+      - type: Controls
 
   - title: Colonization time series
     drawers:
-      - type: ark-pixel.plot.TimeSeries
+      - type: TimeSeries
         observer:
-          type: pwn.obs.TreeColonization
+          type: TreeColonization
         labels:
           title: Tree colonization
           x: time [weeks]
@@ -105,32 +105,32 @@ windows:
 
   - title: Trees
     drawers:
-      - type: pwn.obs.maps.Trees
+      - type: Trees
 
   - title: Colonized trees
     drawers:
-      - type: ark-pixel.plot.Image
+      - type: Image
         observer:
-          type: pwn.obs.maps.TreeColonization
+          type: TreeColonizationMap
           cell_size: 100
         colors: viridis
         max: 5
 
   - title: Beetles
     drawers:
-      - type: ark-pixel.plot.Image
+      - type: Image
         observer:
-          type: pwn.obs.maps.Beetles
+          type: BeetlesMap
           cell_size: 10
         colors: viridis
         max: 10
 
   - title: Attraction
     drawers:
-      - type: ark-pixel.plot.Image
+      - type: Image
         observer:
-          type: pwn.obs.maps.TreeAttraction
-          damaged_trees: false
+          type: TreeAttractionMap
+          damaged_trees: true
         colors: viridis
         min: -8
         max: 0

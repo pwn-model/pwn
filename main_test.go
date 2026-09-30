@@ -57,7 +57,7 @@ func TestLoadShippedConfig(t *testing.T) {
 	require.Len(t, imageWindow.Drawers, 1)
 	img, ok := imageWindow.Drawers[0].Drawer.(*plot.Image)
 	require.True(t, ok)
-	colonizationMap, ok := img.Observer.(*maps.TreeColonization)
+	colonizationMap, ok := img.Observer.(*maps.TreeColonizationMap)
 	require.True(t, ok)
 	assert.Equal(t, 100, colonizationMap.CellSize)
 	assert.Equal(t, 5.0, img.Max)
@@ -71,15 +71,15 @@ func TestUnknownKeysInRegisteredDrawers(t *testing.T) {
 	err := yaml.Unmarshal([]byte(`
 windows:
   - drawers:
-      - type: ark-pixel.plot.TimeSeries
+      - type: TimeSeries
         observer:
-          type: pwn.obs.TreeColonization
+          type: TreeColonization
         labels:
           titel: Trees
 systems:
-  - type: ark-tools.reporter.CSV
+  - type: CSV
     observer:
-      type: pwn.obs.TreePopulation
+      type: TreePopulation
       bogus: 1
     file: out.csv
 `), &cfg)
