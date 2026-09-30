@@ -20,19 +20,19 @@ func setupMapObserverWorld(t *testing.T, width, height int) *ecs.World {
 	return a.World
 }
 
-func TestTreeColonizationRejectsNonMultipleCellSize(t *testing.T) {
+func TestTreeColonizationMapRejectsNonMultipleCellSize(t *testing.T) {
 	a := app.New()
 	ws := res.NewWorldSize(100, 100, 10, 10)
 	ecs.AddResource(a.World, &ws)
 
-	o := TreeColonization{CellSize: 25}
+	o := TreeColonizationMap{CellSize: 25}
 	assert.Panics(t, func() { o.Initialize(a.World) })
 }
 
-func TestTreeColonizationDimsAreWorldSizeDividedByCellSize(t *testing.T) {
+func TestTreeColonizationMapDimsAreWorldSizeDividedByCellSize(t *testing.T) {
 	world := setupMapObserverWorld(t, 100, 40)
 
-	o := TreeColonization{CellSize: 30}
+	o := TreeColonizationMap{CellSize: 30}
 	o.Initialize(world)
 
 	width, height := o.Dims()
@@ -40,10 +40,10 @@ func TestTreeColonizationDimsAreWorldSizeDividedByCellSize(t *testing.T) {
 	assert.Equal(t, 2, height)
 }
 
-func TestTreeColonizationCountsColonizedTreesPerCell(t *testing.T) {
+func TestTreeColonizationMapCountsColonizedTreesPerCell(t *testing.T) {
 	world := setupMapObserverWorld(t, 100, 100)
 
-	o := TreeColonization{CellSize: 30}
+	o := TreeColonizationMap{CellSize: 30}
 	o.Initialize(world)
 
 	colonizedMap := ecs.NewMap2[comp.Position, comp.Colonized](world)
@@ -70,10 +70,10 @@ func TestTreeColonizationCountsColonizedTreesPerCell(t *testing.T) {
 	assert.Equal(t, 3.0, total)
 }
 
-func TestTreeColonizationDoesNotCarryCountsOverBetweenCalls(t *testing.T) {
+func TestTreeColonizationMapDoesNotCarryCountsOverBetweenCalls(t *testing.T) {
 	world := setupMapObserverWorld(t, 100, 100)
 
-	o := TreeColonization{CellSize: 30}
+	o := TreeColonizationMap{CellSize: 30}
 	o.Initialize(world)
 
 	colonizedMap := ecs.NewMap2[comp.Position, comp.Colonized](world)

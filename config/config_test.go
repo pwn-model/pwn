@@ -7,7 +7,6 @@ import (
 
 	"github.com/mlange-42/ark-tools/app"
 	"github.com/mlange-42/ark-tools/resource"
-	"github.com/mlange-42/ark-tools/system"
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/obs"
@@ -23,8 +22,8 @@ func TestConfig_UnmarshalSystems(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`
 systems:
-  - type: pwn.sys.InitGrids
-  - type: pwn.sys.InitTrees
+  - type: InitGrids
+  - type: InitTrees
     tree_probability: 0.9
     damage_prevalence: 0.03
     beetle_prevalence: 0.2
@@ -51,6 +50,17 @@ systems:
 	assert.ErrorContains(t, err, "NoSuchSystem")
 }
 
+// TestRegister_DuplicateName checks that bare config type-names must be
+// unique per registry, and that a clash panics instead of silently
+// replacing the earlier registration.
+func TestRegister_DuplicateName(t *testing.T) {
+	assert.PanicsWithValue(t,
+		`config: type name "InitGrids" is already registered; rename one of the two types`,
+		func() { config.Register[sys.InitGrids]() },
+	)
+	assert.Panics(t, func() { config.RegisterObserver[maps.TreeColonizationMap]() })
+}
+
 func TestConfig_UnmarshalSystems_MissingType(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`
@@ -67,7 +77,7 @@ func TestConfig_Resources(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`
 resources:
-  - type: pwn.res.WorldSize
+  - type: WorldSize
     width: 4000
     height: 3000
     cell_size: 10
@@ -146,9 +156,9 @@ func TestConfig_UnmarshalSystems_UnknownParam(t *testing.T) {
 	//nolint:misspell // "cell_probabilty" is a deliberately misspelled key.
 	err := yaml.Unmarshal([]byte(`
 systems:
-  - type: pwn.sys.InitGrids
+  - type: InitGrids
     bogus: 1
-  - type: pwn.sys.InitTrees
+  - type: InitTrees
     tree_probability: 0.9
     cell_probabilty: 0.5
 `), &cfg)
@@ -161,7 +171,7 @@ func TestConfig_UnmarshalResources_UnknownParam(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`
 resources:
-  - type: pwn.res.WorldSize
+  - type: WorldSize
     widht: 4000
     height: 3000
     cell_size: 10
@@ -175,7 +185,7 @@ func TestConfig_UnmarshalWindows_UnknownDrawerParam(t *testing.T) {
 	err := yaml.Unmarshal([]byte(`
 windows:
   - drawers:
-      - type: pwn.obs.maps.Trees
+      - type: Trees
         bogus: 1
 `), &cfg)
 	assert.ErrorContains(t, err, "line 5: field bogus not found")
@@ -184,7 +194,7 @@ windows:
 func TestConfig_NestedObservers_UnknownParam(t *testing.T) {
 	var matrix config.MatrixObserverConfig
 	err := yaml.Unmarshal([]byte(`
-type: pwn.obs.maps.TreeColonization
+type: TreeColonizationMap
 cell_sise: 100
 `), &matrix)
 	assert.ErrorContains(t, err, "line 3: field cell_sise not found")
@@ -203,14 +213,14 @@ func TestConfig_Apply(t *testing.T) {
 	err := yaml.Unmarshal([]byte(`
 seed: 1
 resources:
-  - type: pwn.res.WorldSize
+  - type: WorldSize
     width: 4000
     height: 3000
     cell_size: 10
     grid_cell_size: 500
 systems:
-  - type: pwn.sys.InitGrids
-  - type: ark-tools.system.FixedTermination
+  - type: InitGrids
+  - type: FixedTermination
     steps: 10
 `), &cfg)
 	require.NoError(t, err)
@@ -229,13 +239,13 @@ systems:
 	assert.Equal(t, 400, ws.Width())
 
 	last := cfg.Systems[len(cfg.Systems)-1].System
-	term, ok := last.(*system.FixedTermination)
+	term, ok := last.(*sys.FixedTermination)
 	require.True(t, ok)
 
 	a.Run()
 
 	tick := ecs.GetResource[resource.Tick](a.World)
-	assert.Equal(t, term.Steps, tick.Tick)
+	assert.Equal(t, int64(term.Steps), tick.Tick)
 }
 
 func TestConfig_UnmarshalWindows(t *testing.T) {
@@ -245,7 +255,7 @@ windows:
   - title: Tree colonization
     draw_interval: 2
     drawers:
-      - type: pwn.obs.maps.Trees
+      - type: Trees
 `), &cfg)
 	require.NoError(t, err)
 	require.Len(t, cfg.Windows, 1)
@@ -284,32 +294,32 @@ windows:
 // way a drawer or reporter's own "observer" field would.
 func TestConfig_NestedObservers(t *testing.T) {
 	var row config.RowObserverConfig
-	err := yaml.Unmarshal([]byte(`type: pwn.obs.TreeColonization`), &row)
+	err := yaml.Unmarshal([]byte(`type: TreeColonization`), &row)
 	require.NoError(t, err)
 	_, ok := row.Row.(*obs.TreeColonization)
 	assert.True(t, ok)
 
 	var matrix config.MatrixObserverConfig
 	err = yaml.Unmarshal([]byte(`
-type: pwn.obs.maps.TreeColonization
+type: TreeColonizationMap
 cell_size: 100
 `), &matrix)
 	require.NoError(t, err)
-	m, ok := matrix.Matrix.(*maps.TreeColonization)
+	m, ok := matrix.Matrix.(*maps.TreeColonizationMap)
 	require.True(t, ok)
 	assert.Equal(t, 100, m.CellSize)
 }
 
 // TestConfig_NestedObservers_WrongKind proves that sharing one registry
 // between Row and Matrix observers (see RegisterObserver) doesn't weaken
-// checking: pwn.obs.TreeColonization only implements observer.Row, so
+// checking: obs.TreeColonization only implements observer.Row, so
 // using it where a Matrix observer is expected must still fail, just at
 // resolution time (via RegisterObserver/RowObserverConfig's own type
 // assertion) instead of at registration time.
 func TestConfig_NestedObservers_WrongKind(t *testing.T) {
 	var matrix config.MatrixObserverConfig
-	err := yaml.Unmarshal([]byte(`type: pwn.obs.TreeColonization`), &matrix)
-	assert.ErrorContains(t, err, "pwn.obs.TreeColonization")
+	err := yaml.Unmarshal([]byte(`type: TreeColonization`), &matrix)
+	assert.ErrorContains(t, err, `"TreeColonization" does not implement`)
 }
 
 func TestConfig_NestedObservers_UnknownType(t *testing.T) {

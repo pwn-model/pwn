@@ -9,12 +9,12 @@ import (
 )
 
 func init() {
-	config.RegisterObserver[Beetles]()
+	config.RegisterObserver[BeetlesMap]()
 }
 
-// Beetles reports the number of life beetles per grid cell of
+// BeetlesMap reports the number of life beetles per grid cell of
 // CellSize (in meters), aggregated over the base tree grid.
-type Beetles struct {
+type BeetlesMap struct {
 	// CellSize of the aggregation grid, in meters. Must be a multiple of
 	// the world's base cell size.
 	CellSize int `yaml:"cell_size"`
@@ -31,7 +31,7 @@ type Beetles struct {
 }
 
 // Initialize the observer.
-func (o *Beetles) Initialize(w *ecs.World) {
+func (o *BeetlesMap) Initialize(w *ecs.World) {
 	o.filter = o.filter.New(w)
 
 	ws := ecs.GetResource[res.WorldSize](w)
@@ -45,15 +45,15 @@ func (o *Beetles) Initialize(w *ecs.World) {
 }
 
 // Update the observer.
-func (o *Beetles) Update(_ *ecs.World) {}
+func (o *BeetlesMap) Update(_ *ecs.World) {}
 
 // Dims returns the matrix dimensions.
-func (o *Beetles) Dims() (int, int) {
+func (o *BeetlesMap) Dims() (int, int) {
 	return o.width, o.height
 }
 
 // Values for the current model tick, in row-major order (i.e. idx = row*ncols + col).
-func (o *Beetles) Values(_ *ecs.World) []float64 {
+func (o *BeetlesMap) Values(_ *ecs.World) []float64 {
 	for i := range o.counts {
 		o.counts[i] = 0
 	}
@@ -72,16 +72,16 @@ func (o *Beetles) Values(_ *ecs.World) []float64 {
 }
 
 // X axis coordinates.
-func (o *Beetles) X(c int) float64 {
+func (o *BeetlesMap) X(c int) float64 {
 	return float64(c * o.CellSize)
 }
 
 // Y axis coordinates.
-func (o *Beetles) Y(r int) float64 {
+func (o *BeetlesMap) Y(r int) float64 {
 	return float64(r * o.CellSize)
 }
 
 // toCoords calculates map-grid coords from tree grid coords.
-func (o *Beetles) toCoords(x, y int) (int, int) {
+func (o *BeetlesMap) toCoords(x, y int) (int, int) {
 	return x / o.unitsPerCell, y / o.unitsPerCell
 }
