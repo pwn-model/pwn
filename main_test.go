@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mlange-42/ark-pixel/plot"
@@ -85,4 +87,29 @@ systems:
 `), &cfg)
 	assert.ErrorContains(t, err, "line 8: field titel not found in type plot.Labels")
 	assert.ErrorContains(t, err, "line 13: field bogus not found in type obs.TreePopulation")
+}
+
+// TestChdir checks that chdir creates a missing directory, makes it the
+// working directory, and that its returned function restores the previous
+// one.
+func TestChdir(t *testing.T) {
+	prev, err := os.Getwd()
+	require.NoError(t, err)
+
+	dir := filepath.Join(t.TempDir(), "a", "b")
+	restore, err := chdir(dir)
+	require.NoError(t, err)
+
+	wd, err := os.Getwd()
+	require.NoError(t, err)
+	want, err := filepath.EvalSymlinks(dir)
+	require.NoError(t, err)
+	got, err := filepath.EvalSymlinks(wd)
+	require.NoError(t, err)
+	assert.Equal(t, want, got)
+
+	restore()
+	wd, err = os.Getwd()
+	require.NoError(t, err)
+	assert.Equal(t, prev, wd)
 }
