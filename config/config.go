@@ -65,7 +65,7 @@ type SystemConfig struct {
 // UnmarshalYAML resolves the entry's "type" field via the system registry,
 // then decodes the rest of the entry into that system's config shape.
 func (c *SystemConfig) UnmarshalYAML(node *yaml.Node) error {
-	sys, err := buildFromNode[app.System](node, registry)
+	sys, err := buildFromNode[app.System](node, registry, true)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (c *ResourceConfig) UnmarshalYAML(node *yaml.Node) error {
 	}
 
 	cfg := entry.newConfig()
-	if err := checkKnownFields(node, reflect.TypeOf(cfg), "type"); err != nil {
+	if err := checkEntryFields(node, reflect.TypeOf(cfg), true); err != nil {
 		return err
 	}
 	if err := node.Decode(cfg); err != nil {
@@ -115,7 +115,7 @@ type DrawerConfig struct {
 // UnmarshalYAML resolves the entry's "type" field via the drawer registry,
 // then decodes the rest of the entry into that drawer's config shape.
 func (c *DrawerConfig) UnmarshalYAML(node *yaml.Node) error {
-	d, err := buildFromNode[window.Drawer](node, drawerRegistry)
+	d, err := buildFromNode[window.Drawer](node, drawerRegistry, false)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ type RowObserverConfig struct {
 // shape. Resolution fails if the named type doesn't implement [observer.Row]
 // (see [RegisterObserver]).
 func (c *RowObserverConfig) UnmarshalYAML(node *yaml.Node) error {
-	o, err := buildFromNode[observer.Row](node, observerRegistry)
+	o, err := buildFromNode[observer.Row](node, observerRegistry, true)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ type MatrixObserverConfig struct {
 // shape. Resolution fails if the named type doesn't implement
 // [observer.Matrix] (see [RegisterObserver]).
 func (c *MatrixObserverConfig) UnmarshalYAML(node *yaml.Node) error {
-	o, err := buildFromNode[observer.Matrix](node, observerRegistry)
+	o, err := buildFromNode[observer.Matrix](node, observerRegistry, true)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,10 @@ func (wc WindowConfig) build() *window.Window {
 
 // Load reads and parses a model config file.
 //
-// Unknown (e.g. misspelled) keys are an error, at any nesting level.
+// Unknown (e.g. misspelled) keys are an error, at any nesting level. So is
+// a missing parameter of a system, resource or observer, unless its field
+// is tagged `config:"optional"`, so that a parameter left out doesn't
+// silently take its zero value. Drawer parameters are all optional.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
