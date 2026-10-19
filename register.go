@@ -76,9 +76,9 @@ type monitorConfig struct {
 type csvReporterConfig struct {
 	Observer       config.RowObserverConfig `yaml:"observer"`
 	File           string                   `yaml:"file"`
-	Sep            string                   `yaml:"sep"`
-	UpdateInterval int                      `yaml:"update_interval"`
-	Final          bool                     `yaml:"final"`
+	Sep            string                   `yaml:"sep" config:"optional"`
+	UpdateInterval int                      `yaml:"update_interval" config:"optional"`
+	Final          bool                     `yaml:"final" config:"optional"`
 }
 
 func init() {

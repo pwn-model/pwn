@@ -15,7 +15,7 @@ func init() {
 // TreeAttractionMap reports the log of the attraction field of damaged or healthy
 // trees (see DamagedTrees) per cell of the attraction grid.
 type TreeAttractionMap struct {
-	DamagedTrees bool `yaml:"damaged_trees"`
+	DamagedTrees bool `yaml:"damaged_trees" config:"optional"`
 
 	grid   res.Grid[float64]
 	values []float64

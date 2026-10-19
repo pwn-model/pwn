@@ -33,9 +33,9 @@ type TreeAttraction struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
 
 	// DamagedTrees selects which trees this instance computes attraction
-	// from and which resource it publishes to: false (the default) uses
-	// healthy trees and publishes res.HealthyTreeAttraction, true uses
-	// damaged trees and publishes res.DamagedTreeAttraction.
+	// from and which resource it publishes to: false uses healthy trees and
+	// publishes res.HealthyTreeAttraction, true uses damaged trees and
+	// publishes res.DamagedTreeAttraction.
 	DamagedTrees bool `yaml:"damaged_trees"`
 
 	// HalfDistance is the distance, in meters, at which a source's

@@ -39,8 +39,10 @@ func register[C any, T any](reg map[string]buildEntry, build func(C) T) {
 
 // buildFromNode resolves a "type" + parameters YAML node via reg, decodes
 // the rest of the node into the resolved type's config shape, and builds
-// the final value, asserting it implements I.
-func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry) (I, error) {
+// the final value, asserting it implements I. If required is set, every
+// parameter not tagged `config:"optional"` must be given (see
+// [checkEntryFields]).
+func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry, required bool) (I, error) {
 	var zero I
 
 	typ, err := entryType(node)
@@ -54,7 +56,7 @@ func buildFromNode[I any](node *yaml.Node, reg map[string]buildEntry) (I, error)
 	}
 
 	cfg := entry.newConfig()
-	if err := checkKnownFields(node, reflect.TypeOf(cfg), "type"); err != nil {
+	if err := checkEntryFields(node, reflect.TypeOf(cfg), required); err != nil {
 		return zero, err
 	}
 	if err := node.Decode(cfg); err != nil {
@@ -93,6 +95,9 @@ var registry = map[string]buildEntry{}
 // works for both. The flip side is that names must be unique per registry
 // (systems, resources, drawers, observers): registering a second type
 // under a taken name panics, and one of the two types must be renamed.
+//
+// Every exported field is a required parameter in config files, unless
+// tagged `config:"optional"` (see [Load]).
 //
 // T is the system's concrete (value) type; PT must be *T and implement
 // [app.System]. Call it as Register[sys.Colonization](), once per system

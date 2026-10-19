@@ -24,6 +24,7 @@ func TestConfig_UnmarshalSystems(t *testing.T) {
 systems:
   - type: InitGrids
   - type: InitTrees
+    km2_probability: 0.6
     tree_probability: 0.9
     damage_prevalence: 0.03
     beetle_prevalence: 0.2
@@ -36,6 +37,7 @@ systems:
 
 	initTrees, ok := cfg.Systems[1].System.(*sys.InitTrees)
 	require.True(t, ok)
+	assert.Equal(t, 0.6, initTrees.Km2Probability)
 	assert.Equal(t, 0.9, initTrees.TreeProbability)
 	assert.Equal(t, 0.03, initTrees.DamagePrevalence)
 	assert.Equal(t, 0.2, initTrees.BeetlePrevalence)
@@ -175,6 +177,74 @@ resources:
     cell_size: 10
 `), &cfg)
 	assert.ErrorContains(t, err, "line 4: field widht not found")
+}
+
+func TestConfig_UnmarshalSystems_MissingParam(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+systems:
+  - type: InitTrees
+    tree_probability: 0.9
+    beetle_prevalence: 0.2
+  - type: UpdateTime
+    bogus: 1
+`), &cfg)
+	// Missing and unknown keys are all reported, each entry with its own
+	// line.
+	assert.ErrorContains(t, err, "line 3: missing field(s) km2_probability, damage_prevalence in type sys.InitTrees")
+	assert.ErrorContains(t, err, "line 7: field bogus not found in type sys.UpdateTime")
+	assert.ErrorContains(t, err, "line 6: missing field(s) ticks_per_year in type sys.UpdateTime")
+}
+
+// TestConfig_UnmarshalSystems_MergeKey checks that parameters merged in
+// via "<<: *anchor" count as given.
+func TestConfig_UnmarshalSystems_MergeKey(t *testing.T) {
+	var doc struct {
+		Defaults any                   `yaml:"defaults"`
+		Systems  []config.SystemConfig `yaml:"systems"`
+	}
+	err := yaml.Unmarshal([]byte(`
+defaults: &defaults
+  tick_of_year: 35
+  damage_probability: 0.01
+systems:
+  - type: DamageTrees
+    <<: *defaults
+    removal_probability: 0.333
+`), &doc)
+	require.NoError(t, err)
+
+	damage, ok := doc.Systems[0].System.(*sys.DamageTrees)
+	require.True(t, ok)
+	assert.Equal(t, 35, damage.TickOfYear)
+}
+
+func TestConfig_UnmarshalResources_MissingParam(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+resources:
+  - type: WorldSize
+    width: 4000
+    cell_size: 10
+`), &cfg)
+	assert.ErrorContains(t, err, "line 3: missing field(s) height")
+}
+
+func TestConfig_NestedObservers_MissingParam(t *testing.T) {
+	var matrix config.MatrixObserverConfig
+	err := yaml.Unmarshal([]byte(`type: TreeColonizationMap`), &matrix)
+	assert.ErrorContains(t, err, "missing field(s) cell_size")
+}
+
+// TestConfig_OptionalParam checks that a field tagged `config:"optional"`
+// may be left out, keeping its zero value.
+func TestConfig_OptionalParam(t *testing.T) {
+	var matrix config.MatrixObserverConfig
+	err := yaml.Unmarshal([]byte(`type: TreeAttractionMap`), &matrix)
+	require.NoError(t, err)
+	m, ok := matrix.Matrix.(*maps.TreeAttractionMap)
+	require.True(t, ok)
+	assert.False(t, m.DamagedTrees)
 }
 
 func TestConfig_UnmarshalWindows_UnknownDrawerParam(t *testing.T) {
