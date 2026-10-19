@@ -40,18 +40,18 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 	damaged := make([]comp.Position, 0, int(math.Ceil(float64(cap(cells))*s.DamagePrevalence*1.2)))
 	colonized := make([]comp.Position, 0, int(math.Ceil(float64(cap(cells))*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
 
-	hectares := res.NewGrid[bool](util.CeilDiv(trees.Width(), cellsPerKm2), util.CeilDiv(trees.Height(), cellsPerKm2), cellsSize)
-	for x := range hectares.Width() {
-		for y := range hectares.Height() {
+	blocks := res.NewGrid[bool](util.CeilDiv(trees.Width(), cellsPerKm2), util.CeilDiv(trees.Height(), cellsPerKm2), cellsSize)
+	for x := range blocks.Width() {
+		for y := range blocks.Height() {
 			if rand.Float64() < s.Km2Probability {
-				hectares.Set(x, y, true)
+				blocks.Set(x, y, true)
 			}
 		}
 	}
 
 	for x := range trees.Width() {
 		for y := range trees.Height() {
-			if !hectares.Get(x/cellsPerKm2, y/cellsPerKm2) {
+			if !blocks.Get(x/cellsPerKm2, y/cellsPerKm2) {
 				continue
 			}
 			if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {
