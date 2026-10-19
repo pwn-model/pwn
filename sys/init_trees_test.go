@@ -13,17 +13,16 @@ import (
 func TestInitTrees(t *testing.T) {
 	app := app.New()
 
-	ws := res.NewWorldSize(1000, 500, 10, 100)
+	ws := res.NewWorldSize(1000, 500, 10)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{CellProbability: 1.0, TreeProbability: 0.9}
+	s := InitTrees{HectareProbability: 1.0, TreeProbability: 0.9}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
-	space := ecs.GetResource[res.SpaceGrid](app.World)
 
 	q := ecs.NewFilter1[comp.Position](app.World).Query()
 

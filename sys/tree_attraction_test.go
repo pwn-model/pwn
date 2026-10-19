@@ -15,7 +15,7 @@ func setupTreeAttractionWorld(t *testing.T) (*ecs.World, *ecs.Map1[comp.Position
 	t.Helper()
 
 	a := app.New()
-	ws := res.NewWorldSize(2000, 500, 10, 100)
+	ws := res.NewWorldSize(2000, 500, 10)
 	ecs.AddResource(a.World, &ws)
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 0})
 

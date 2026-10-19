@@ -20,17 +20,8 @@ type RandomRelease struct {
 	// NumTrees is the number of trees to infect. Capped at the number of
 	// undamaged, uninfected trees in the cell.
 	NumTrees int `yaml:"num_trees"`
-	// CellX and CellY are the 0-based column and row of the release cell
-	// in the coarse res.SpaceGrid (cells of WorldSize's grid_cell_size
-	// meters), counted from the world origin. E.g. with grid_cell_size 500,
-	// cell (2, 1) covers x in [1000, 1500) and y in [500, 1000) meters.
-	//
-	// The sibling Julia implementation uses the same 0-based convention,
-	// so that the same config file selects the same cell in both.
-	CellX int `yaml:"cell_x"`
-	CellY int `yaml:"cell_y"`
 
-	filter  *ecs.Filter2[comp.Position, comp.InCell]
+	filter  *ecs.Filter1[comp.Position]
 	mapper  *ecs.Map1[comp.Infected]
 	timeRes ecs.Resource[res.Time]
 }
@@ -52,12 +43,10 @@ func (s *RandomRelease) Update(world *ecs.World) {
 
 	rng := ecs.GetResource[resource.Rand](world)
 	worldSize := ecs.GetResource[res.WorldSize](world)
-	grid := ecs.GetResource[res.SpaceGrid](world)
-	cell := grid.Get(s.CellX, s.CellY)
 
-	toInfect := make([]ecs.Entity, 0, worldSize.Resolution()*worldSize.Resolution())
+	toInfect := make([]ecs.Entity, 0, worldSize.Width()*worldSize.Height())
 
-	query := s.filter.Query(ecs.RelIdx(1, cell))
+	query := s.filter.Query()
 	for query.NextTable() {
 		toInfect = append(toInfect, query.Entities()...)
 	}

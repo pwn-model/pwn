@@ -17,80 +17,78 @@ func init() {
 
 // InitTrees system
 type InitTrees struct {
-	CellProbability  float64 `yaml:"cell_probability"`
-	TreeProbability  float64 `yaml:"tree_probability"`
-	DamagePrevalence float64 `yaml:"damage_prevalence"`
-	BeetlePrevalence float64 `yaml:"beetle_prevalence"`
+	HectareProbability float64 `yaml:"hectare_probability"`
+	TreeProbability    float64 `yaml:"tree_probability"`
+	DamagePrevalence   float64 `yaml:"damage_prevalence"`
+	BeetlePrevalence   float64 `yaml:"beetle_prevalence"`
 }
 
 // Initialize the system.
 func (s *InitTrees) Initialize(world *ecs.World) {
-	ws := ecs.GetResource[res.WorldSize](world)
-	grid := ecs.GetResource[res.SpaceGrid](world)
 	trees := ecs.GetResource[res.TreeGrid](world)
 	rand := rand.New(ecs.GetResource[resource.Rand](world))
 
-	builderDefault := ecs.NewMap2[comp.Position, comp.InCell](world)
-	builderDamaged := ecs.NewMap3[comp.Position, comp.InCell, comp.Damaged](world)
-	builderColonized := ecs.NewMap4[comp.Position, comp.InCell, comp.Damaged, comp.Colonized](world)
+	builderDefault := ecs.NewMap1[comp.Position](world)
+	builderDamaged := ecs.NewMap2[comp.Position, comp.Damaged](world)
+	builderColonized := ecs.NewMap3[comp.Position, comp.Damaged, comp.Colonized](world)
 
-	cells := make([]comp.Position, 0, ws.Resolution()*ws.Resolution())
-	damaged := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution()*ws.Resolution())*s.DamagePrevalence*1.2)))
-	colonized := make([]comp.Position, 0, int(math.Ceil(float64(ws.Resolution()*ws.Resolution())*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
+	cellsPer100m := int(math.Round(100.0 / float64(trees.CellSize())))
+	cellsSize := trees.CellSize() * int(cellsPer100m)
 
-	for x := range grid.Width() {
-		for y := range grid.Height() {
-			if rand.Float64() > s.CellProbability {
-				continue
+	cells := make([]comp.Position, 0, trees.Width()*trees.Height())
+	damaged := make([]comp.Position, 0, int(math.Ceil(float64(len(cells))*s.DamagePrevalence*1.2)))
+	colonized := make([]comp.Position, 0, int(math.Ceil(float64(len(cells))*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
+
+	hectares := res.NewGrid[bool](trees.Width()/cellsPer100m, trees.Height()/cellsPer100m, cellsSize)
+	for x := range hectares.Width() {
+		for y := range hectares.Height() {
+			if rand.Float64() < s.HectareProbability {
+				hectares.Set(x, y, true)
 			}
-			cells := cells[:0]
-			damaged := damaged[:0]
-			colonized := colonized[:0]
-			cell := grid.Get(x, y)
-
-			res := ws.Resolution()
-			for dx := range res {
-				for dy := range res {
-					if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {
-						continue
-					}
-					xx := x*res + dx
-					yy := y*res + dy
-					r := rand.Float64()
-					if r < s.DamagePrevalence {
-						if r < s.DamagePrevalence*s.BeetlePrevalence {
-							colonized = append(colonized, comp.Position{X: xx, Y: yy})
-						} else {
-							damaged = append(damaged, comp.Position{X: xx, Y: yy})
-						}
-					} else {
-						cells = append(cells, comp.Position{X: xx, Y: yy})
-					}
-				}
-			}
-
-			cnt := 0
-			builderDefault.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position, _ *comp.InCell) {
-				*p = cells[cnt]
-				trees.Set(p.X, p.Y, e)
-				cnt++
-			}, ecs.RelIdx(1, cell))
-
-			cnt = 0
-			builderDamaged.NewBatchFn(len(damaged), func(e ecs.Entity, p *comp.Position, _ *comp.InCell, _ *comp.Damaged) {
-				*p = damaged[cnt]
-				trees.Set(p.X, p.Y, e)
-				cnt++
-			}, ecs.RelIdx(1, cell))
-
-			cnt = 0
-			builderColonized.NewBatchFn(len(colonized), func(e ecs.Entity, p *comp.Position, _ *comp.InCell, _ *comp.Damaged, _ *comp.Colonized) {
-				*p = colonized[cnt]
-				trees.Set(p.X, p.Y, e)
-				cnt++
-			}, ecs.RelIdx(1, cell))
 		}
 	}
+
+	for x := range trees.Width() {
+		for y := range trees.Height() {
+			if !hectares.Get(x/cellsSize, y/cellsSize) {
+				continue
+			}
+			if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {
+				continue
+			}
+			r := rand.Float64()
+			if r < s.DamagePrevalence {
+				if r < s.DamagePrevalence*s.BeetlePrevalence {
+					colonized = append(colonized, comp.Position{X: x, Y: y})
+				} else {
+					damaged = append(damaged, comp.Position{X: x, Y: y})
+				}
+			} else {
+				cells = append(cells, comp.Position{X: x, Y: y})
+			}
+		}
+	}
+
+	cnt := 0
+	builderDefault.NewBatchFn(len(cells), func(e ecs.Entity, p *comp.Position) {
+		*p = cells[cnt]
+		trees.Set(p.X, p.Y, e)
+		cnt++
+	})
+
+	cnt = 0
+	builderDamaged.NewBatchFn(len(damaged), func(e ecs.Entity, p *comp.Position, _ *comp.Damaged) {
+		*p = damaged[cnt]
+		trees.Set(p.X, p.Y, e)
+		cnt++
+	})
+
+	cnt = 0
+	builderColonized.NewBatchFn(len(colonized), func(e ecs.Entity, p *comp.Position, _ *comp.Damaged, _ *comp.Colonized) {
+		*p = colonized[cnt]
+		trees.Set(p.X, p.Y, e)
+		cnt++
+	})
 }
 
 // Update the system.

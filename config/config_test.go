@@ -93,7 +93,6 @@ resources:
 	assert.Equal(t, 400, ws.Width())
 	assert.Equal(t, 300, ws.Height())
 	assert.Equal(t, 10, ws.CellSize())
-	assert.Equal(t, 50, ws.Resolution())
 }
 
 func TestConfig_UnmarshalResources_UnknownType(t *testing.T) {
