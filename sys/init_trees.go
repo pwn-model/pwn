@@ -9,6 +9,7 @@ import (
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
@@ -17,10 +18,10 @@ func init() {
 
 // InitTrees system
 type InitTrees struct {
-	HectareProbability float64 `yaml:"hectare_probability"`
-	TreeProbability    float64 `yaml:"tree_probability"`
-	DamagePrevalence   float64 `yaml:"damage_prevalence"`
-	BeetlePrevalence   float64 `yaml:"beetle_prevalence"`
+	Km2Probability   float64 `yaml:"km2_probability"`
+	TreeProbability  float64 `yaml:"tree_probability"`
+	DamagePrevalence float64 `yaml:"damage_prevalence"`
+	BeetlePrevalence float64 `yaml:"beetle_prevalence"`
 }
 
 // Initialize the system.
@@ -32,17 +33,17 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 	builderDamaged := ecs.NewMap2[comp.Position, comp.Damaged](world)
 	builderColonized := ecs.NewMap3[comp.Position, comp.Damaged, comp.Colonized](world)
 
-	cellsPer100m := int(math.Round(100.0 / float64(trees.CellSize())))
-	cellsSize := trees.CellSize() * int(cellsPer100m)
+	cellsPerKm2 := int(math.Round(1000.0 / float64(trees.CellSize())))
+	cellsSize := trees.CellSize() * cellsPerKm2
 
 	cells := make([]comp.Position, 0, trees.Width()*trees.Height())
-	damaged := make([]comp.Position, 0, int(math.Ceil(float64(len(cells))*s.DamagePrevalence*1.2)))
-	colonized := make([]comp.Position, 0, int(math.Ceil(float64(len(cells))*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
+	damaged := make([]comp.Position, 0, int(math.Ceil(float64(cap(cells))*s.DamagePrevalence*1.2)))
+	colonized := make([]comp.Position, 0, int(math.Ceil(float64(cap(cells))*s.DamagePrevalence*s.BeetlePrevalence*1.2)))
 
-	hectares := res.NewGrid[bool](trees.Width()/cellsPer100m, trees.Height()/cellsPer100m, cellsSize)
+	hectares := res.NewGrid[bool](util.CeilDiv(trees.Width(), cellsPerKm2), util.CeilDiv(trees.Height(), cellsPerKm2), cellsSize)
 	for x := range hectares.Width() {
 		for y := range hectares.Height() {
-			if rand.Float64() < s.HectareProbability {
+			if rand.Float64() < s.Km2Probability {
 				hectares.Set(x, y, true)
 			}
 		}
@@ -50,7 +51,7 @@ func (s *InitTrees) Initialize(world *ecs.World) {
 
 	for x := range trees.Width() {
 		for y := range trees.Height() {
-			if !hectares.Get(x/cellsSize, y/cellsSize) {
+			if !hectares.Get(x/cellsPerKm2, y/cellsPerKm2) {
 				continue
 			}
 			if s.TreeProbability < 1.0 && rand.Float64() > s.TreeProbability {

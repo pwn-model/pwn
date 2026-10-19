@@ -13,7 +13,8 @@ func init() {
 	config.Register[RandomRelease]()
 }
 
-// RandomRelease infects the given number of trees in the given grid cell.
+// RandomRelease infects the given number of trees,
+// randomly selected from all over the simulation area.
 type RandomRelease struct {
 	// TickOfInfection is the model tick at which trees are infected.
 	TickOfInfection int `yaml:"tick_of_infection"`
@@ -42,11 +43,9 @@ func (s *RandomRelease) Update(world *ecs.World) {
 	}
 
 	rng := ecs.GetResource[resource.Rand](world)
-	worldSize := ecs.GetResource[res.WorldSize](world)
-
-	toInfect := make([]ecs.Entity, 0, worldSize.Width()*worldSize.Height())
 
 	query := s.filter.Query()
+	toInfect := make([]ecs.Entity, 0, query.Count())
 	for query.NextTable() {
 		toInfect = append(toInfect, query.Entities()...)
 	}

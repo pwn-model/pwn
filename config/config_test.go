@@ -81,7 +81,6 @@ resources:
     width: 4000
     height: 3000
     cell_size: 10
-    grid_cell_size: 500
 `), &cfg)
 	require.NoError(t, err)
 	require.Len(t, cfg.Resources, 1)
@@ -152,18 +151,18 @@ windows:
 
 func TestConfig_UnmarshalSystems_UnknownParam(t *testing.T) {
 	var cfg config.Config
-	//nolint:misspell // "cell_probabilty" is a deliberately misspelled key.
+	//nolint:misspell // "km2_probabilty" is a deliberately misspelled key.
 	err := yaml.Unmarshal([]byte(`
 systems:
   - type: InitGrids
     bogus: 1
   - type: InitTrees
     tree_probability: 0.9
-    cell_probabilty: 0.5
+    km2_probabilty: 0.5
 `), &cfg)
 	// Both entries' unknown keys are reported, each with its own line.
 	assert.ErrorContains(t, err, "line 4: field bogus not found in type sys.InitGrids")
-	assert.ErrorContains(t, err, "line 7: field cell_probabilty not found in type sys.InitTrees") //nolint:misspell
+	assert.ErrorContains(t, err, "line 7: field km2_probabilty not found in type sys.InitTrees") //nolint:misspell
 }
 
 func TestConfig_UnmarshalResources_UnknownParam(t *testing.T) {
@@ -174,7 +173,6 @@ resources:
     widht: 4000
     height: 3000
     cell_size: 10
-    grid_cell_size: 500
 `), &cfg)
 	assert.ErrorContains(t, err, "line 4: field widht not found")
 }
@@ -216,7 +214,6 @@ resources:
     width: 4000
     height: 3000
     cell_size: 10
-    grid_cell_size: 500
 systems:
   - type: InitGrids
   - type: FixedTermination

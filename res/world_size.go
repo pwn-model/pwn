@@ -29,7 +29,6 @@ type WorldSize struct {
 // - World width in meters
 // - World height in meters
 // - Cell size of the tree grid in meters
-// - Cell size of the spatial grid in meters
 func NewWorldSize(width, height, cellSize int) WorldSize {
 	if width%cellSize != 0 {
 		panic("World width must be a multiple of cellSize")
