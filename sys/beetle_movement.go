@@ -106,7 +106,7 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 			}
 
 			for range s.StepsPerTick {
-				if !presence.Get(pos.X, pos.Y) || rng.Float64() >= s.LeaveTreeProbability {
+				if !presence.Get(pos.X, pos.Y) || rng.Float64() < s.LeaveTreeProbability {
 					if rng.Float64() < s.RandomWalkProbability {
 						pos.X, pos.Y = s.randomNeighbor(src, pos.X, pos.Y)
 					} else {
