@@ -13,24 +13,22 @@ import (
 func TestInitTrees(t *testing.T) {
 	app := app.New()
 
-	ws := res.NewWorldSize(1000, 500, 10, 100)
+	ws := res.NewWorldSize(1000, 500, 10)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{CellProbability: 1.0, TreeProbability: 0.9}
+	s := InitTrees{Km2Probability: 1.0, TreeProbability: 0.9}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
-	space := ecs.GetResource[res.SpaceGrid](app.World)
 
 	q := ecs.NewFilter1[comp.Position](app.World).Query()
 
 	// get one entity
 	q.Next()
 	pos := q.Get()
-	entity := q.Entity()
 
 	count := q.Count()
 	q.Close()
@@ -40,10 +38,6 @@ func TestInitTrees(t *testing.T) {
 
 	assert.False(t, grid.Get(pos.X, pos.Y).IsZero())
 
-	inCell := ecs.NewMap1[comp.InCell](app.World)
-	cell := inCell.GetRelation(entity, 0)
-	assert.Equal(t, space.Get(pos.X/ws.Resolution(), pos.Y/ws.Resolution()), cell)
-
 	damagedQuery := ecs.NewFilter1[comp.Damaged](app.World).Query()
 	assert.Equal(t, 0, damagedQuery.Count())
 	damagedQuery.Close()
@@ -52,18 +46,16 @@ func TestInitTrees(t *testing.T) {
 func TestInitTreesDamaged(t *testing.T) {
 	app := app.New()
 
-	ws := res.NewWorldSize(1000, 500, 10, 100)
+	ws := res.NewWorldSize(1000, 500, 10)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{CellProbability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2}
+	s := InitTrees{Km2Probability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
-	space := ecs.GetResource[res.SpaceGrid](app.World)
-	inCell := ecs.NewMap1[comp.InCell](app.World)
 
 	// TreeProbability of 1.0 places exactly one tree per fine cell.
 	totalQuery := ecs.NewFilter1[comp.Position](app.World).Query()
@@ -78,12 +70,8 @@ func TestInitTreesDamaged(t *testing.T) {
 		entity := damagedQuery.Entity()
 
 		// The entity grid must point to the entity actually holding this position,
-		// not to a stale duplicate from another coarse cell.
+		// not to a stale duplicate.
 		assert.Equal(t, entity, grid.Get(pos.X, pos.Y))
-
-		// The InCell relation must match the coarse cell the position actually falls into.
-		cell := inCell.GetRelation(entity, 0)
-		assert.Equal(t, space.Get(pos.X/ws.Resolution(), pos.Y/ws.Resolution()), cell)
 
 		damagedCount++
 	}
@@ -96,13 +84,13 @@ func TestInitTreesDamaged(t *testing.T) {
 func TestInitTreesColonized(t *testing.T) {
 	app := app.New()
 
-	ws := res.NewWorldSize(1000, 500, 10, 100)
+	ws := res.NewWorldSize(1000, 500, 10)
 	ecs.AddResource(app.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(app.World)
 
-	s := InitTrees{CellProbability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
+	s := InitTrees{Km2Probability: 1.0, TreeProbability: 1.0, DamagePrevalence: 0.2, BeetlePrevalence: 0.3}
 	s.Initialize(app.World)
 
 	grid := ecs.GetResource[res.TreeGrid](app.World)
@@ -124,7 +112,7 @@ func TestInitTreesColonized(t *testing.T) {
 		entity := colonizedQuery.Entity()
 
 		// The entity grid must point to the entity actually holding this position,
-		// not to a stale duplicate from another coarse cell.
+		// not to a stale duplicate.
 		assert.Equal(t, entity, grid.Get(pos.X, pos.Y))
 
 		colonizedCount++
@@ -142,4 +130,34 @@ func TestInitTreesColonized(t *testing.T) {
 
 	expectedDamagedOnly := float64(total) * s.DamagePrevalence * (1 - s.BeetlePrevalence)
 	assert.InDelta(t, expectedDamagedOnly, float64(damagedOnlyCount), expectedDamagedOnly*0.25)
+}
+
+func TestInitTreesForestsWholeKm2Blocks(t *testing.T) {
+	app := app.New()
+
+	// 3.5 x 2 km: 4 x 2 blocks of 1 km², the last column only half as wide.
+	ws := res.NewWorldSize(3500, 2000, 10)
+	ecs.AddResource(app.World, &ws)
+
+	gs := InitGrids{}
+	gs.Initialize(app.World)
+
+	s := InitTrees{Km2Probability: 0.5, TreeProbability: 1.0}
+	assert.NotPanics(t, func() { s.Initialize(app.World) })
+
+	const blockCells = 100 // 1000 m / 10 m
+	counts := make(map[[2]int]int)
+	q := ecs.NewFilter1[comp.Position](app.World).Query()
+	for q.Next() {
+		pos := q.Get()
+		counts[[2]int{pos.X / blockCells, pos.Y / blockCells}]++
+	}
+	q.Close()
+
+	// With TreeProbability of 1.0, each block is either fully forested or empty.
+	for block, count := range counts {
+		w := min(blockCells, ws.Width()-block[0]*blockCells)
+		h := min(blockCells, ws.Height()-block[1]*blockCells)
+		assert.Equal(t, w*h, count, "block %v", block)
+	}
 }

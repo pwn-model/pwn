@@ -40,13 +40,13 @@ func setup(width, height, ticks int) *app.App {
 	rnd := ecs.GetResource[resource.Rand](app.World)
 	rnd.Source = res.NewXoshiro256pp(1)
 
-	worldSize := res.NewWorldSize(width, height, 10, 500)
+	worldSize := res.NewWorldSize(width, height, 10)
 	ecs.AddResource(app.World, &worldSize)
 
 	// Initialization
 	app.AddSystem(&sys.InitGrids{})
 	app.AddSystem(&sys.InitTrees{
-		CellProbability:  1.0,
+		Km2Probability:   1.0,
 		TreeProbability:  0.9,
 		DamagePrevalence: 0.03,
 		BeetlePrevalence: 0.2,
@@ -62,8 +62,6 @@ func setup(width, height, ticks int) *app.App {
 	app.AddSystem(&sys.RandomRelease{
 		TickOfInfection: 0,
 		NumTrees:        10,
-		CellX:           10,
-		CellY:           10,
 	})
 	app.AddSystem(&sys.DamageTrees{
 		TickOfYear:         35,

@@ -14,7 +14,7 @@ func setupMapObserverWorld(t *testing.T, width, height int) *ecs.World {
 	t.Helper()
 
 	a := app.New()
-	ws := res.NewWorldSize(width, height, 10, 10)
+	ws := res.NewWorldSize(width, height, 10)
 	ecs.AddResource(a.World, &ws)
 
 	return a.World
@@ -22,7 +22,7 @@ func setupMapObserverWorld(t *testing.T, width, height int) *ecs.World {
 
 func TestTreeColonizationMapRejectsNonMultipleCellSize(t *testing.T) {
 	a := app.New()
-	ws := res.NewWorldSize(100, 100, 10, 10)
+	ws := res.NewWorldSize(100, 100, 10)
 	ecs.AddResource(a.World, &ws)
 
 	o := TreeColonizationMap{CellSize: 25}

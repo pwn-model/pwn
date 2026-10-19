@@ -7,11 +7,6 @@ type TreeGrid struct {
 	Grid[ecs.Entity]
 }
 
-// SpaceGrid resource for the large-scale spatial grid.
-type SpaceGrid struct {
-	Grid[ecs.Entity]
-}
-
 // HealthyTreeAttraction resource.
 type HealthyTreeAttraction struct {
 	Grid[float64]

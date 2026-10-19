@@ -11,11 +11,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setupColonizationWorld(t *testing.T, width, height, resolution int) *ecs.World {
+func setupColonizationWorld(t *testing.T, width, height int) *ecs.World {
 	t.Helper()
 
 	a := app.New()
-	ws := res.NewWorldSize(width, height, 10, resolution)
+	ws := res.NewWorldSize(width, height, 10)
 	ecs.AddResource(a.World, &ws)
 
 	gs := InitGrids{}
@@ -54,7 +54,7 @@ func TestBuildKernelNormalizesWeights(t *testing.T) {
 }
 
 func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
-	world := setupColonizationWorld(t, 30, 30, 10)
+	world := setupColonizationWorld(t, 30, 30)
 
 	s := Colonization{CellSize: 10, KernelHalfDistance: math.Ln2, KernelRadius: 1, BeetlesPerTree: 10}
 	s.Initialize(world)
@@ -82,7 +82,7 @@ func TestColonizationCalcArrivalsConservesBeetleCount(t *testing.T) {
 }
 
 func TestColonizationCalcProbabilityOccupancyFormula(t *testing.T) {
-	world := setupColonizationWorld(t, 30, 10, 10)
+	world := setupColonizationWorld(t, 30, 10)
 
 	s := Colonization{CellSize: 10, TreesPerBeetle: 1}
 	s.Initialize(world)
@@ -109,7 +109,7 @@ func TestColonizationCalcProbabilityOccupancyFormula(t *testing.T) {
 }
 
 func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
-	world := setupColonizationWorld(t, 100, 100, 100)
+	world := setupColonizationWorld(t, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 0})
 
 	s := Colonization{
@@ -136,7 +136,7 @@ func TestColonizationSkipsWrongTickOfYear(t *testing.T) {
 }
 
 func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
-	world := setupColonizationWorld(t, 100, 100, 100)
+	world := setupColonizationWorld(t, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 3})
 
 	// KernelRadius 0 keeps all beetles in the source's own cell, and the
@@ -171,7 +171,7 @@ func TestColonizationColonizesSusceptibleTreeWhenBeetlesArrive(t *testing.T) {
 }
 
 func TestColonizationNoColonizationWithoutSource(t *testing.T) {
-	world := setupColonizationWorld(t, 100, 100, 100)
+	world := setupColonizationWorld(t, 100, 100)
 	ecs.AddResource(world, &res.Time{TickOfYear: 3})
 
 	s := Colonization{
