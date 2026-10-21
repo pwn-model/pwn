@@ -33,7 +33,7 @@ func (s *BeetleEmergence) Initialize(world *ecs.World) {
 	s.timeRes = s.timeRes.New(world)
 	s.randRes = s.randRes.New(world)
 
-	s.filter = s.filter.New(world).With(ecs.C[comp.Damaged](), ecs.C[comp.Infected]())
+	s.filter = s.filter.New(world).With(ecs.C[comp.Colonized](), ecs.C[comp.Infected]())
 	s.builder = s.builder.New(world)
 }
 
