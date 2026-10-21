@@ -17,8 +17,8 @@ func TestBeetleEmergenceSkipsWrongTickOfYear(t *testing.T) {
 	s := BeetleEmergence{TickOfYear: 0, BeetlesPerTree: 5, LifeExpectancy: 10}
 	s.Initialize(a.World)
 
-	sourceMap := ecs.NewMap3[comp.Position, comp.Damaged, comp.Infected](a.World)
-	sourceMap.NewEntity(&comp.Position{X: 1, Y: 2}, &comp.Damaged{}, &comp.Infected{})
+	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
+	sourceMap.NewEntity(&comp.Position{X: 1, Y: 2}, &comp.Colonized{}, &comp.Infected{})
 
 	s.Update(a.World)
 
@@ -35,9 +35,9 @@ func TestBeetleEmergenceCreatesBeetlesFromSourceTrees(t *testing.T) {
 	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 4, LifeExpectancy: 10}
 	s.Initialize(a.World)
 
-	sourceMap := ecs.NewMap3[comp.Position, comp.Damaged, comp.Infected](a.World)
-	sourceMap.NewEntity(&comp.Position{X: 1, Y: 2}, &comp.Damaged{}, &comp.Infected{})
-	sourceMap.NewEntity(&comp.Position{X: 5, Y: 6}, &comp.Damaged{}, &comp.Infected{})
+	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
+	sourceMap.NewEntity(&comp.Position{X: 1, Y: 2}, &comp.Colonized{}, &comp.Infected{})
+	sourceMap.NewEntity(&comp.Position{X: 5, Y: 6}, &comp.Colonized{}, &comp.Infected{})
 
 	s.Update(a.World)
 
@@ -67,8 +67,8 @@ func TestBeetleEmergenceRequiresBothDamagedAndInfected(t *testing.T) {
 	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 5, LifeExpectancy: 10}
 	s.Initialize(a.World)
 
-	damagedOnly := ecs.NewMap2[comp.Position, comp.Damaged](a.World)
-	damagedOnly.NewEntity(&comp.Position{X: 1, Y: 1}, &comp.Damaged{})
+	damagedOnly := ecs.NewMap2[comp.Position, comp.Colonized](a.World)
+	damagedOnly.NewEntity(&comp.Position{X: 1, Y: 1}, &comp.Colonized{})
 
 	infectedOnly := ecs.NewMap2[comp.Position, comp.Infected](a.World)
 	infectedOnly.NewEntity(&comp.Position{X: 2, Y: 2}, &comp.Infected{})
@@ -102,8 +102,8 @@ func TestBeetleEmergenceSourceBufferDoesNotLeakAcrossTicks(t *testing.T) {
 	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 2, LifeExpectancy: 10}
 	s.Initialize(a.World)
 
-	sourceMap := ecs.NewMap3[comp.Position, comp.Damaged, comp.Infected](a.World)
-	sourceMap.NewEntity(&comp.Position{X: 1, Y: 1}, &comp.Damaged{}, &comp.Infected{})
+	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
+	sourceMap.NewEntity(&comp.Position{X: 1, Y: 1}, &comp.Colonized{}, &comp.Infected{})
 
 	s.Update(a.World)
 	s.Update(a.World)
