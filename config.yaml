@@ -52,6 +52,20 @@ systems:
     half_distance: 50
     density_radius: 20
     density_weight: 1.0
+
+  - type: CoarseTreeAttraction
+    tick_of_year: 18
+    damaged_trees: true
+    cell_size: 100
+    half_distance: 200
+    density_weight: 1.0
+  
+  - type: CoarseTreeAttraction
+    tick_of_year: 18
+    damaged_trees: false
+    cell_size: 100
+    half_distance: 200
+    density_weight: 1.0
   
   - type: BeetleMovement
     steps_per_tick:          7
@@ -127,6 +141,16 @@ windows:
       - type: Image
         observer:
           type: TreeAttractionMap
+          damaged_trees: true
+        colors: viridis
+        min: -8
+        max: 0
+
+  - title: Coarse attraction
+    drawers:
+      - type: Image
+        observer:
+          type: CoarseTreeAttractionMap
           damaged_trees: true
         colors: viridis
         min: -8
