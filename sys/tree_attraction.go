@@ -24,11 +24,11 @@ func init() {
 // DensityWeight values, since healthy and damaged trees plausibly attract
 // vectors differently.
 //
-// Each source tree seeds fillGrid with its own local occupancy fraction
-// (see fillFromQuery), raised to DensityWeight, instead of a uniform value:
-// a denser cluster starts from a taller seed, so it can out-reach and win
-// cells that a closer but sparser source would otherwise have claimed by
-// max-relaxation.
+// Each source tree seeds propagateAttraction with its own local occupancy
+// fraction (see fillFromQuery), raised to DensityWeight, instead of a
+// uniform value: a denser cluster starts from a taller seed, so it can
+// out-reach and win cells that a closer but sparser source would otherwise
+// have claimed by max-relaxation.
 type TreeAttraction struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
 
@@ -70,18 +70,14 @@ type TreeAttraction struct {
 	// decay field), 1 makes the seed scale linearly with local occupancy,
 	// and >1 makes denser clusters reach disproportionately farther than
 	// the same trees spread out. Since occupancy is normalized to (0, 1],
-	// every seed -- and so, by fillGrid's max-relaxation, the whole
-	// resulting field -- stays within (0, 1] regardless of DensityRadius
-	// or how densely populated the world is.
+	// every seed -- and so, by propagateAttraction's max-relaxation, the
+	// whole resulting field -- stays within (0, 1] regardless of
+	// DensityRadius or how densely populated the world is.
 	DensityWeight float64 `yaml:"density_weight"`
 
 	timeRes ecs.Resource[res.Time]
 
 	filter *ecs.Filter1[comp.Position]
-
-	// decay is the per-orthogonal-cell-step decay factor derived from
-	// HalfDistance; a diagonal step uses decay^sqrt(2).
-	decay float64
 
 	// densityRadiusCells is DensityRadius expressed in grid cells. Left at
 	// its zero value when DensityWeight is 0.
@@ -119,8 +115,6 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 	}
 
 	ws := ecs.GetResource[res.WorldSize](world)
-	s.decay = math.Exp(-float64(ws.CellSize()) * math.Ln2 / s.HalfDistance)
-
 	s.attraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	if s.DamagedTrees {
 		ecs.AddResource(world, &res.DamagedTreeAttraction{Grid: s.attraction})
@@ -158,14 +152,14 @@ func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 
 func (s *TreeAttraction) calcAttraction() {
 	s.fillFromQuery(&s.attraction, s.filter)
-	s.fillGrid(&s.attraction)
+	propagateAttraction(&s.attraction, s.HalfDistance)
 }
 
 // fillFromQuery seeds the attraction grid: every cell containing a
 // matching tree is set to that source's own local occupancy fraction
 // (localCount divided by maxCount, always in (0, 1]) raised to
-// DensityWeight, everything else to 0. fillGrid then propagates these
-// seeds outward.
+// DensityWeight, everything else to 0. propagateAttraction then propagates
+// these seeds outward.
 func (s *TreeAttraction) fillFromQuery(grid *res.Grid[float64], filter *ecs.Filter1[comp.Position]) {
 	grid.Fill(0.0)
 
@@ -244,49 +238,4 @@ func (s *TreeAttraction) localCount(x, y int) float64 {
 
 	sat := s.sat
 	return sat[idx(x2+1, y2+1)] - sat[idx(x1, y2+1)] - sat[idx(x2+1, y1)] + sat[idx(x1, y1)]
-}
-
-// fillGrid turns the seeded values into a smooth attraction field by
-// propagating each source's value outward, multiplying by decay per
-// orthogonal step and decay^sqrt(2) per diagonal step, and keeping the best
-// (max) value reaching each cell from any source. This is an in-place,
-// single-grid Gauss-Seidel relaxation (a discrete fast-sweeping method):
-// two passes in opposite raster directions suffice, because the grid has
-// no obstacles, so any shortest path from a source can be split into one
-// forward-monotone and one backward-monotone segment, each fully resolved
-// by one of the two passes.
-func (s *TreeAttraction) fillGrid(grid *res.Grid[float64]) {
-	w, h := grid.Width(), grid.Height()
-
-	// Offsets of the already-updated neighbours seen by a sweep moving in
-	// increasing (forward) resp. decreasing (backward) x/y, paired with
-	// their step decay factor.
-	forward := [4][2]int{{-1, -1}, {-1, 0}, {-1, 1}, {0, -1}}
-	backward := [4][2]int{{1, 1}, {1, 0}, {1, -1}, {0, 1}}
-	decays := [4]float64{math.Pow(s.decay, math.Sqrt2), s.decay, math.Pow(s.decay, math.Sqrt2), s.decay}
-
-	relax := func(x, y int, offsets [4][2]int) {
-		best := grid.Get(x, y)
-		for i, o := range offsets {
-			nx, ny := x+o[0], y+o[1]
-			if nx < 0 || nx >= w || ny < 0 || ny >= h {
-				continue
-			}
-			if v := grid.Get(nx, ny) * decays[i]; v > best {
-				best = v
-			}
-		}
-		grid.Set(x, y, best)
-	}
-
-	for x := range w {
-		for y := range h {
-			relax(x, y, forward)
-		}
-	}
-	for x := w - 1; x >= 0; x-- {
-		for y := h - 1; y >= 0; y-- {
-			relax(x, y, backward)
-		}
-	}
 }

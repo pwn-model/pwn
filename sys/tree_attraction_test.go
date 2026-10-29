@@ -48,8 +48,8 @@ func TestTreeAttractionSingleSourceDecaysMultiplicatively(t *testing.T) {
 	// A single isolated tree seeds at count^0=1; 10 cells away (a purely
 	// orthogonal offset, so the chamfer sweep is exact here, not
 	// approximate), the value should be exactly decay^10 -- confirming
-	// fillGrid decays multiplicatively rather than subtracting a fixed
-	// cost per step.
+	// propagateAttraction decays multiplicatively rather than subtracting a
+	// fixed cost per step.
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
 }
 
@@ -153,10 +153,10 @@ func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
 
 // A fully-occupied patch (a tree in every cell of its own DensityRadius
 // window) has an occupancy fraction of exactly 1, so its seed is exactly
-// 1 regardless of DensityWeight -- and since fillGrid's max-relaxation can
-// never exceed the largest seed anywhere in the grid, no cell of the
-// resulting field can exceed 1 either, however densely populated the world
-// is or how high DensityWeight is set.
+// 1 regardless of DensityWeight -- and since propagateAttraction's
+// max-relaxation can never exceed the largest seed anywhere in the grid, no
+// cell of the resulting field can exceed 1 either, however densely
+// populated the world is or how high DensityWeight is set.
 func TestTreeAttractionFieldNeverExceedsOne(t *testing.T) {
 	world, posMap := setupTreeAttractionWorld(t)
 	for dx := -2; dx <= 2; dx++ {
