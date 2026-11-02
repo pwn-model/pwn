@@ -12,7 +12,7 @@ func init() {
 	config.RegisterObserver[TreeAttractionMap]()
 }
 
-// TreeAttractionMap reports the log of the attraction field of damaged or healthy
+// TreeAttractionMap reports the base-10 log of the attraction field of damaged or healthy
 // trees (see DamagedTrees) per cell of the attraction grid.
 type TreeAttractionMap struct {
 	DamagedTrees bool `yaml:"damaged_trees" config:"optional"`
@@ -44,7 +44,7 @@ func (o *TreeAttractionMap) Values(_ *ecs.World) []float64 {
 	w, h := o.grid.Width(), o.grid.Height()
 	for x := range w {
 		for y := range h {
-			o.values[y*w+x] = math.Log(o.grid.Get(x, y))
+			o.values[y*w+x] = math.Log10(o.grid.Get(x, y))
 		}
 	}
 

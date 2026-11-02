@@ -34,7 +34,7 @@ func TestCoarseTreeAttractionMapReportsLogOfSelectedField(t *testing.T) {
 
 		values := o.Values(world)
 		// Row-major: cell (2, 1) is at index 1*3+2.
-		assert.InDelta(t, math.Log(tc.want), values[5], 1e-12)
+		assert.InDelta(t, math.Log10(tc.want), values[5], 1e-12)
 		assert.True(t, math.IsInf(values[0], -1), "an empty cell's log must be -Inf")
 	}
 }
