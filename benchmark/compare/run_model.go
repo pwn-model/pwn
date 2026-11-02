@@ -103,8 +103,8 @@ func setup(width, height, ticks int) *app.App {
 	})
 	app.AddSystem(&sys.BeetleMovement{
 		StepsPerTick:          7,
-		DurationFeeding:       6,
-		DurationEggLaying:     6,
+		DurationFeeding:       3,
+		DurationEggLaying:     8,
 		LeaveTreeProbability:  0.1,
 		RandomWalkProbability: 0.5,
 	})

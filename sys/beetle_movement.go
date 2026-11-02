@@ -110,7 +110,7 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 					if rng.Float64() < s.RandomWalkProbability {
 						pos.X, pos.Y = s.randomNeighbor(src, pos.X, pos.Y)
 					} else {
-						pos.X, pos.Y = s.maxFieldNeighbor(&field, pos.X, pos.Y)
+						pos.X, pos.Y = s.maxFieldNeighbor(src, &field, pos.X, pos.Y)
 					}
 				}
 
@@ -144,23 +144,40 @@ func (s *BeetleMovement) randomNeighbor(src rand.Source, x, y int) (int, int) {
 }
 
 // maxFieldNeighbor picks the in-bounds Moore-neighborhood cell of (x, y)
-// with the highest value in field, breaking ties by neighborOffsets order.
-func (s *BeetleMovement) maxFieldNeighbor(field *res.Grid[float64], x, y int) (int, int) {
-	bestX, bestY := x, y
-	hasBest := false
+// with the highest value in field. Ties are broken uniformly at random, so
+// that a flat field doesn't bias movement towards the first neighborOffsets.
+// Draws a random number only if there is a tie, via util.RandRange (see
+// randomNeighbor).
+func (s *BeetleMovement) maxFieldNeighbor(src rand.Source, field *res.Grid[float64], x, y int) (int, int) {
+	var candidates [len(neighborOffsets)]uint8
+	n := 0
 	var bestV float64
-	for _, o := range neighborOffsets {
+	for i, o := range neighborOffsets {
 		nx, ny := x+o[0], y+o[1]
 		if nx < 0 || nx >= s.width || ny < 0 || ny >= s.height {
 			continue
 		}
-		if v := field.Get(nx, ny); !hasBest || v > bestV {
+		v := field.Get(nx, ny)
+		if n == 0 || v > bestV {
 			bestV = v
-			bestX, bestY = nx, ny
-			hasBest = true
+			candidates[0] = uint8(i)
+			n = 1
+		} else if v == bestV {
+			candidates[n] = uint8(i)
+			n++
 		}
 	}
-	return bestX, bestY
+
+	switch n {
+	case 0:
+		return x, y
+	case 1:
+		o := neighborOffsets[candidates[0]]
+		return x + o[0], y + o[1]
+	default:
+		o := neighborOffsets[candidates[util.RandRange(src, uint64(n))]]
+		return x + o[0], y + o[1]
+	}
 }
 
 // Finalize the system.
