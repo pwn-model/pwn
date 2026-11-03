@@ -50,6 +50,23 @@ func RandRange(src rand.Source, n uint64) uint64 {
 	return hi
 }
 
+// RandomDirection draws a uniformly distributed direction, as a unit vector
+// (dx, dy), by rejection sampling of points in the unit disk. It uses only
+// arithmetic and square roots, which are correctly rounded, rather than
+// trigonometric functions, so that it stays bit-identical with the sibling
+// Julia implementation's random_direction (PWNModel.jl/src/res/rng.jl).
+func RandomDirection(rng *rand.Rand) (float64, float64) {
+	for {
+		x := 2*rng.Float64() - 1
+		y := 2*rng.Float64() - 1
+		s := x*x + y*y
+		if s > 0 && s <= 1 {
+			l := math.Sqrt(s)
+			return x / l, y / l
+		}
+	}
+}
+
 // ExpFloat64 draws an exponentially-distributed float64 (rate 1) from src,
 // using a Go port of Julia's Ziggurat algorithm for randexp (stdlib
 // Random.randexp, stdlib/Random/src/normal.jl).

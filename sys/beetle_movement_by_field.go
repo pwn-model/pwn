@@ -15,6 +15,14 @@ func init() {
 	config.Register[BeetleMovementByField]()
 }
 
+// neighborOffsets are the (dx, dy) offsets of the 8 Moore-neighborhood cells
+// around a beetle's current cell.
+var neighborOffsets = [8][2]int{
+	{-1, -1}, {0, -1}, {1, -1},
+	{-1, 0}, {1, 0},
+	{-1, 1}, {0, 1}, {1, 1},
+}
+
 // BeetleMovementByField system.
 type BeetleMovementByField struct {
 	StepsPerTick          int     `yaml:"steps_per_tick"`

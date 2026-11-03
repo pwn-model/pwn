@@ -16,14 +16,6 @@ func init() {
 	config.Register[BeetleMovement]()
 }
 
-// neighborOffsets are the (dx, dy) offsets of the 8 Moore-neighborhood cells
-// around a beetle's current cell.
-var neighborOffsets = [8][2]int{
-	{-1, -1}, {0, -1}, {1, -1},
-	{-1, 0}, {1, 0},
-	{-1, 1}, {0, 1}, {1, 1},
-}
-
 // BeetleMovement system.
 type BeetleMovement struct {
 	StepsPerTick    int     `yaml:"steps_per_tick"`
@@ -118,17 +110,16 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 				inside := true
 				if step == 0 && tick == et.TickOfEmergence {
 					// Undirected flight away from the tree the beetle emerged from,
-					// in one go. Costs 1 per cell, like walk.
-					flight := rng.Float64() * s.emergenceFlightInCells
-					offset := randomOffset(src)
-					cells := math.Floor(min(flight, maxStep))
-					pos.X += offset[0] * int(cells)
-					pos.Y += offset[1] * int(cells)
-					maxStep -= cells
+					// in one go, in a uniformly random direction.
+					flight := min(rng.Float64()*s.emergenceFlightInCells, maxStep)
+					dx, dy := util.RandomDirection(rng)
+					pos.X += int(math.Round(dx * flight))
+					pos.Y += int(math.Round(dy * flight))
+					maxStep -= flight
 					inside = nearest.Contains(pos.X, pos.Y)
 				} else if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
 					// Walk out of the area attracted by the tree the beetle leaves.
-					maxStep, inside = walk(src, pos, &nearest, maxStep)
+					maxStep, inside = walk(rng, pos, &nearest, maxStep)
 				}
 
 				if !inside {
@@ -176,27 +167,23 @@ func (s *BeetleMovement) feed(x, y int) {
 	s.feedingInfected.Set(x, y, s.feedingInfected.Get(x, y)+1)
 }
 
-// walk moves pos cell by cell in a random one of the neighborOffsets, out of
-// the area of the source the beetle is in: it stops as soon as the cell's
-// source differs, or the remaining budget (in cells) is below 1. Each cell
-// costs 1 of the budget, also diagonal ones. Returns the remaining budget,
-// and false if the beetle left the grid (pos is then outside of it).
-func walk(src rand.Source, pos *comp.BeetlePosition, source *res.Grid[uint32], budget float64) (float64, bool) {
+// walk moves pos along a straight line in a uniformly random direction, out
+// of the area of the source the beetle is in. It advances in steps of one
+// cell size of distance, each costing 1 of the budget, and stops as soon as
+// the cell's source differs, or the remaining budget (in cells) is below 1.
+// Returns the remaining budget, and false if the beetle left the grid (pos
+// is then outside of it).
+func walk(rng *rand.Rand, pos *comp.BeetlePosition, source *res.Grid[uint32], budget float64) (float64, bool) {
 	leaving := source.Get(pos.X, pos.Y)
-	offset := randomOffset(src)
-	for budget >= 1 && source.Get(pos.X, pos.Y) == leaving {
-		pos.X += offset[0]
-		pos.Y += offset[1]
-		budget-- // TODO: exact cost for diagonal steps?
+	dx, dy := util.RandomDirection(rng)
+	x0, y0 := pos.X, pos.Y
+	for k := 1; budget >= 1 && source.Get(pos.X, pos.Y) == leaving; k++ {
+		pos.X = x0 + int(math.Round(float64(k)*dx))
+		pos.Y = y0 + int(math.Round(float64(k)*dy))
+		budget--
 		if !source.Contains(pos.X, pos.Y) {
 			return budget, false
 		}
 	}
 	return budget, true
-}
-
-// randomOffset draws one of the neighborOffsets uniformly at random, via
-// util.RandRange (see BeetleMovementByField.randomNeighbor).
-func randomOffset(src rand.Source) [2]int {
-	return neighborOffsets[util.RandRange(src, uint64(len(neighborOffsets)))]
 }
