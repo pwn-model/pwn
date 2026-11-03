@@ -87,20 +87,6 @@ func setup(width, height, ticks int) *app.App {
 		DensityRadius: 20,
 		DensityWeight: 1.0,
 	})
-	app.AddSystem(&sys.CoarseTreeAttraction{
-		TickOfYear:    18,
-		DamagedTrees:  true,
-		CellSize:      100,
-		HalfDistance:  200,
-		DensityWeight: 1.0,
-	})
-	app.AddSystem(&sys.CoarseTreeAttraction{
-		TickOfYear:    18,
-		DamagedTrees:  false,
-		CellSize:      100,
-		HalfDistance:  200,
-		DensityWeight: 1.0,
-	})
 	app.AddSystem(&sys.BeetleMovement{
 		StepsPerTick:          7,
 		DurationFeeding:       3,
