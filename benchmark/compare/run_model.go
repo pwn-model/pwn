@@ -72,6 +72,7 @@ func setup(width, height, ticks int) *app.App {
 		TickOfYear:     19,
 		BeetlesPerTree: 5,
 		LifeExpectancy: 5,
+		MaxAge:         18,
 	})
 	app.AddSystem(&sys.TreeAttraction{
 		TickOfYear:    18,
@@ -85,28 +86,14 @@ func setup(width, height, ticks int) *app.App {
 		DamagedTrees:  false,
 		HalfDistance:  50,
 		DensityRadius: 20,
-		DensityWeight: 1.0,
-	})
-	app.AddSystem(&sys.CoarseTreeAttraction{
-		TickOfYear:    18,
-		DamagedTrees:  true,
-		CellSize:      100,
-		HalfDistance:  200,
-		DensityWeight: 1.0,
-	})
-	app.AddSystem(&sys.CoarseTreeAttraction{
-		TickOfYear:    18,
-		DamagedTrees:  false,
-		CellSize:      100,
-		HalfDistance:  200,
 		DensityWeight: 1.0,
 	})
 	app.AddSystem(&sys.BeetleMovement{
-		StepsPerTick:          7,
-		DurationFeeding:       3,
-		DurationEggLaying:     8,
-		LeaveTreeProbability:  0.1,
-		RandomWalkProbability: 0.5,
+		StepsPerTick:         7,
+		DistancePerStep:      2000,
+		DurationFeeding:      3,
+		FeedingProbability:   0.5,
+		LeaveTreeProbability: 0.1,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{

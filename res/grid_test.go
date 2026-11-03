@@ -25,3 +25,35 @@ func TestGrid(t *testing.T) {
 
 	assert.Equal(t, e, g.Get(0, 5))
 }
+
+func TestGridIndexCoords(t *testing.T) {
+	g := NewGrid[uint32](20, 10, 1)
+
+	for x := range g.Width() {
+		for y := range g.Height() {
+			idx := g.Index(x, y)
+			assert.Less(t, idx, NoCell)
+
+			cx, cy := g.Coords(idx)
+			assert.Equal(t, x, cx)
+			assert.Equal(t, y, cy)
+		}
+	}
+
+	// The index is the position in the grid's own storage.
+	g.Set(3, 7, 42)
+	assert.Equal(t, uint32(42), g.values[g.Index(3, 7)])
+}
+
+func TestGridContains(t *testing.T) {
+	g := NewGrid[bool](20, 10, 1)
+
+	assert.True(t, g.Contains(0, 0))
+	assert.True(t, g.Contains(19, 9))
+	assert.True(t, g.Contains(5, 5))
+
+	assert.False(t, g.Contains(-1, 0))
+	assert.False(t, g.Contains(0, -1))
+	assert.False(t, g.Contains(20, 0))
+	assert.False(t, g.Contains(0, 10))
+}

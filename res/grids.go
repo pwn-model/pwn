@@ -9,24 +9,26 @@ type TreeGrid struct {
 
 // HealthyTreeAttraction resource.
 type HealthyTreeAttraction struct {
-	Grid[float64]
+	// Attraction field of healthy trees, updated once per year.
+	Attraction Grid[float64]
+	// Presence of healthy trees per cell, updated together with Attraction.
+	Presence Grid[bool]
+	// Source of the attraction value per cell, i.e. the index (see
+	// Grid.Index) of the tree cell it was propagated from. NoCell where
+	// there is no source at all.
+	Source Grid[uint32]
 }
 
 // DamagedTreeAttraction resource.
 type DamagedTreeAttraction struct {
-	Grid[float64]
-}
-
-// HealthyTreeAttractionCoarse resource, on the coarse grid of the
-// CoarseTreeAttraction system.
-type HealthyTreeAttractionCoarse struct {
-	Grid[float64]
-}
-
-// DamagedTreeAttractionCoarse resource, on the coarse grid of the
-// CoarseTreeAttraction system.
-type DamagedTreeAttractionCoarse struct {
-	Grid[float64]
+	// Attraction field of damaged trees, updated once per year.
+	Attraction Grid[float64]
+	// Presence of damaged trees per cell, updated together with Attraction.
+	Presence Grid[bool]
+	// Source of the attraction value per cell, i.e. the index (see
+	// Grid.Index) of the tree cell it was propagated from. NoCell where
+	// there is no source at all.
+	Source Grid[uint32]
 }
 
 // FeedingInfectedBeetles resource.
