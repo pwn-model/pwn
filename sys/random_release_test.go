@@ -15,14 +15,14 @@ func setupRandomReleaseWorld(t *testing.T) *ecs.World {
 
 	a := app.New()
 
-	// 20x20 cells, one tree per cell.
+	// 20x20 cells, one damaged tree per cell.
 	ws := res.NewWorldSize(200, 200, 10)
 	ecs.AddResource(a.World, &ws)
 
 	gs := InitGrids{}
 	gs.Initialize(a.World)
 
-	ts := InitTrees{Km2Probability: 1.0, TreeProbability: 1.0}
+	ts := InitTrees{Km2Probability: 1.0, TreeProbability: 1.0, DamagePrevalence: 1.0}
 	ts.Initialize(a.World)
 
 	return a.World
@@ -71,23 +71,18 @@ func TestRandomRelease(t *testing.T) {
 func TestRandomReleaseSkipsIneligibleTrees(t *testing.T) {
 	world := setupRandomReleaseWorld(t)
 
-	// Mark all trees as already infected, except one.
+	// Mark one tree as undamaged and all others as already infected, except one.
 	infectMapper := ecs.NewMap1[comp.Infected](world)
+	damagedMapper := ecs.NewMap1[comp.Damaged](world)
 	trees := ecs.NewFilter1[comp.Position](world).Query()
-	var spared ecs.Entity
-	sparedSet := false
-	var toPreInfect []ecs.Entity
+	var all []ecs.Entity
 	for trees.Next() {
-		e := trees.Entity()
-		if !sparedSet {
-			spared = e
-			sparedSet = true
-			continue
-		}
-		toPreInfect = append(toPreInfect, e)
+		all = append(all, trees.Entity())
 	}
 	trees.Close()
-	for _, e := range toPreInfect {
+	spared := all[0]
+	damagedMapper.Remove(all[1])
+	for _, e := range all[2:] {
 		infectMapper.Add(e, &comp.Infected{InfectionTick: -1})
 	}
 

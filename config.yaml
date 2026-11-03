@@ -72,7 +72,7 @@ systems:
     trees_per_beetle: 1.0
   
   - type: NematodeInfection
-    infection_probability: 0.01
+    infection_probability: 0.02
 
   # Stop criterion
   - type: FixedTermination
@@ -121,7 +121,7 @@ windows:
           type: BeetlesMap
           cell_size: 10
         colors: viridis
-        max: 10
+        max: 5
 
   - title: Attraction
     drawers:
