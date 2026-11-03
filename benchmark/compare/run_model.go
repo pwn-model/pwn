@@ -88,12 +88,12 @@ func setup(width, height, ticks int) *app.App {
 		DensityRadius: 20,
 		DensityWeight: 1.0,
 	})
-	app.AddSystem(&sys.BeetleMovementByField{
-		StepsPerTick:          7,
-		DurationFeeding:       3,
-		DurationEggLaying:     8,
-		LeaveTreeProbability:  0.1,
-		RandomWalkProbability: 0.5,
+	app.AddSystem(&sys.BeetleMovement{
+		StepsPerTick:         7,
+		DistancePerStep:      2000,
+		DurationFeeding:      3,
+		FeedingProbability:   0.5,
+		LeaveTreeProbability: 0.1,
 	})
 	app.AddSystem(&sys.BeetleMortality{})
 	app.AddSystem(&sys.Colonization{
