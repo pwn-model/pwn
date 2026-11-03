@@ -26,9 +26,13 @@ var neighborOffsets = [8][2]int{
 
 // BeetleMovement system.
 type BeetleMovement struct {
-	StepsPerTick         int     `yaml:"steps_per_tick"`
-	DistancePerStep      float64 `yaml:"distance_per_step"`
-	DurationFeeding      int     `yaml:"duration_feeding"`
+	StepsPerTick    int     `yaml:"steps_per_tick"`
+	DistancePerStep float64 `yaml:"distance_per_step"`
+	DurationFeeding int     `yaml:"duration_feeding"`
+	// FeedingProbability is the probability that a beetle past
+	// DurationFeeding feeds (targets healthy trees) instead of laying eggs
+	// (targets damaged trees), drawn anew each tick.
+	FeedingProbability   float64 `yaml:"feeding_probability"`
 	LeaveTreeProbability float64 `yaml:"leave_tree_probability"`
 
 	timeRes         ecs.Resource[res.Time]
@@ -85,9 +89,7 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 
 			isFeeding := true
 			if tick >= et.TickOfEmergence+s.DurationFeeding {
-				if rng.Float64() < 0.5 { // TODO: make parameter
-					isFeeding = false
-				}
+				isFeeding = rng.Float64() < s.FeedingProbability
 			}
 
 			if isFeeding {
