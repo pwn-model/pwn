@@ -145,13 +145,3 @@ windows:
         colors: viridis
         min: -4
         max: 0
-
-  - title: Coarse attraction
-    drawers:
-      - type: Image
-        observer:
-          type: CoarseTreeAttractionMap
-          damaged_trees: true
-        colors: viridis
-        min: -4
-        max: 0

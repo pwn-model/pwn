@@ -23,18 +23,6 @@ type DamagedTreeAttraction struct {
 	Presence Grid[bool]
 }
 
-// HealthyTreeAttractionCoarse resource, on the coarse grid of the
-// CoarseTreeAttraction system.
-type HealthyTreeAttractionCoarse struct {
-	Grid[float64]
-}
-
-// DamagedTreeAttractionCoarse resource, on the coarse grid of the
-// CoarseTreeAttraction system.
-type DamagedTreeAttractionCoarse struct {
-	Grid[float64]
-}
-
 // FeedingInfectedBeetles resource.
 type FeedingInfectedBeetles struct {
 	Grid[uint32]
