@@ -105,7 +105,7 @@ func setup(width, height, ticks int) *app.App {
 		TreesPerBeetle:     1,
 	})
 	app.AddSystem(&sys.NematodeInfection{
-		InfectionProbability: 0.01,
+		InfectionProbability: 0.02,
 	})
 
 	// Stop criterion
