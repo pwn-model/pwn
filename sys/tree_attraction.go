@@ -103,10 +103,11 @@ type TreeAttraction struct {
 	// other systems (e.g. BeetleMovementByField).
 	presence res.Grid[bool]
 
-	// source is the tree cell each cell's attraction value was propagated
-	// from, res.NoCell where there is none. Recalculated together with the
-	// attraction field, and published along with it.
-	source res.Grid[res.Cell]
+	// source is the index (see res.Grid.Index) of the tree cell each cell's
+	// attraction value was propagated from, res.NoCell where there is none.
+	// Recalculated together with the attraction field, and published along
+	// with it.
+	source res.Grid[uint32]
 
 	// sat is a reused (width+1)*(height+1) summed-area-table buffer for
 	// counting each source's local density, laid out the same column-major
@@ -129,7 +130,10 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 	ws := ecs.GetResource[res.WorldSize](world)
 	s.attraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	s.presence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
-	s.source = res.NewGrid[res.Cell](ws.Width(), ws.Height(), ws.CellSize())
+	if uint64(ws.Width())*uint64(ws.Height()) >= uint64(res.NoCell) {
+		panic("world too large for uint32 cell indices of attraction sources")
+	}
+	s.source = res.NewGrid[uint32](ws.Width(), ws.Height(), ws.CellSize())
 	if s.DamagedTrees {
 		ecs.AddResource(world, &res.DamagedTreeAttraction{
 			Attraction: s.attraction, Presence: s.presence, Source: s.source,
@@ -190,7 +194,7 @@ func (s *TreeAttraction) fillFromQuery() {
 			pos := &positions[i]
 			s.presence.Set(pos.X, pos.Y, true)
 			s.attraction.Set(pos.X, pos.Y, 1.0)
-			s.source.Set(pos.X, pos.Y, res.Cell{X: pos.X, Y: pos.Y})
+			s.source.Set(pos.X, pos.Y, s.source.Index(pos.X, pos.Y))
 		}
 	}
 

@@ -125,7 +125,7 @@ func TestTreeAttractionZeroWeightFavoursCloserIsolatedTree(t *testing.T) {
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
 
 	source := ecs.GetResource[res.HealthyTreeAttraction](world).Source
-	assert.Equal(t, res.Cell{X: 50, Y: 25}, source.Get(60, 25))
+	assert.Equal(t, source.Index(50, 25), source.Get(60, 25))
 }
 
 func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
@@ -155,7 +155,7 @@ func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
 
 	// The source is the cluster's nearest tree, not the closer lone tree.
 	source := ecs.GetResource[res.HealthyTreeAttraction](world).Source
-	assert.Equal(t, res.Cell{X: 99, Y: 25}, source.Get(60, 25))
+	assert.Equal(t, source.Index(99, 25), source.Get(60, 25))
 }
 
 // A fully-occupied patch (a tree in every cell of its own DensityRadius
@@ -340,12 +340,12 @@ func TestTreeAttractionSourceMatchesBruteForce(t *testing.T) {
 	s.fillFromQuery()
 
 	seeds := res.NewGrid[float64](w, h, ws.CellSize())
-	var trees []res.Cell
+	var trees [][2]int
 	for x := range w {
 		for y := range h {
 			seeds.Set(x, y, s.attraction.Get(x, y))
 			if s.presence.Get(x, y) {
-				trees = append(trees, res.Cell{X: x, Y: y})
+				trees = append(trees, [2]int{x, y})
 			}
 		}
 	}
@@ -353,16 +353,17 @@ func TestTreeAttractionSourceMatchesBruteForce(t *testing.T) {
 	propagateAttraction(&s.attraction, &s.source, s.HalfDistance)
 
 	decay := math.Exp(-float64(ws.CellSize()) * math.Ln2 / s.HalfDistance)
-	contribution := func(x, y int, c res.Cell) float64 {
-		dx, dy := math.Abs(float64(x-c.X)), math.Abs(float64(y-c.Y))
+	contribution := func(x, y int, c [2]int) float64 {
+		dx, dy := math.Abs(float64(x-c[0])), math.Abs(float64(y-c[1]))
 		dist := max(dx, dy) + (math.Sqrt2-1)*min(dx, dy)
-		return seeds.Get(c.X, c.Y) * math.Pow(decay, dist)
+		return seeds.Get(c[0], c[1]) * math.Pow(decay, dist)
 	}
 
 	for x := range w {
 		for y := range h {
-			c := s.source.Get(x, y)
-			if !assert.True(t, s.presence.Get(c.X, c.Y), "cell (%d, %d): source %v is not a tree", x, y, c) {
+			cx, cy := s.source.Coords(s.source.Get(x, y))
+			c := [2]int{cx, cy}
+			if !assert.True(t, s.presence.Get(cx, cy), "cell (%d, %d): source %v is not a tree", x, y, c) {
 				continue
 			}
 			v := s.attraction.Get(x, y)

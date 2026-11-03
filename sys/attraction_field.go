@@ -25,7 +25,7 @@ import (
 // cell ends up with the source cell its final value originates from. On
 // ties, a cell keeps its current value and source, and among neighbours
 // the first in sweep offset order wins.
-func propagateAttraction(grid *res.Grid[float64], source *res.Grid[res.Cell], halfDistance float64) {
+func propagateAttraction(grid *res.Grid[float64], source *res.Grid[uint32], halfDistance float64) {
 	w, h := grid.Width(), grid.Height()
 	decay := math.Exp(-float64(grid.CellSize()) * math.Ln2 / halfDistance)
 

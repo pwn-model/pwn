@@ -67,7 +67,7 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 
 	healthy := s.healthyFieldRes.Get()
 	damaged := s.damagedFieldRes.Get()
-	var nearest res.Grid[res.Cell]
+	var nearest res.Grid[uint32]
 	var presence res.Grid[bool]
 
 	s.feedingInfected.Fill(0)
@@ -92,11 +92,11 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 
 			for range s.StepsPerTick {
 				if !presence.Get(pos.X, pos.Y) || rng.Float64() < s.LeaveTreeProbability {
-					target := nearest.Get(pos.X, pos.Y)
-					dx, dy := float64(target.X-pos.X), float64(target.Y-pos.Y)
+					tx, ty := nearest.Coords(nearest.Get(pos.X, pos.Y))
+					dx, dy := float64(tx-pos.X), float64(ty-pos.Y)
 					distSq := dx*dx + dy*dy
 					if distSq <= maxStepSq {
-						pos.X, pos.Y = target.X, target.Y
+						pos.X, pos.Y = tx, ty
 					} else {
 						frac := maxStep / math.Sqrt(distSq)
 						pos.X += int(math.Round(dx * frac))

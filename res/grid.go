@@ -1,13 +1,10 @@
 package res
 
-// Cell coordinates on a grid.
-type Cell struct {
-	X, Y int
-}
+import "math"
 
-// NoCell is a placeholder for the absence of a cell, e.g. of an attraction
-// source.
-var NoCell = Cell{-1, -1}
+// NoCell is a placeholder cell index for the absence of a cell, e.g. of an
+// attraction source. See [Grid.Index].
+const NoCell uint32 = math.MaxUint32
 
 // Grid resource.
 //
@@ -47,6 +44,20 @@ func (g *Grid[T]) Get(x, y int) T {
 // Set the tree entity at the given coordinates.
 func (g *Grid[T]) Set(x, y int, e T) {
 	g.values[y+g.height*x] = e
+}
+
+// Index returns the linear index of the cell at (x, y), as used for the
+// grid's own storage. Only valid for grids with less than [NoCell] cells,
+// so that NoCell is never a valid index.
+func (g *Grid[T]) Index(x, y int) uint32 {
+	return uint32(y + g.height*x)
+}
+
+// Coords returns the coordinates of the cell with the given linear index.
+// Inverse of [Grid.Index].
+func (g *Grid[T]) Coords(idx uint32) (int, int) {
+	i := int(idx)
+	return i / g.height, i % g.height
 }
 
 // Fill the grid with the given value.
