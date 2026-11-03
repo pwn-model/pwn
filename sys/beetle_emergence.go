@@ -24,7 +24,7 @@ type BeetleEmergence struct {
 	randRes ecs.Resource[resource.Rand]
 
 	filter  *ecs.Filter1[comp.Position]
-	builder *ecs.Map4[comp.BeetlePosition, comp.EmergenceTick, comp.LifeExpectancy, comp.LastTree]
+	builder *ecs.Map3[comp.BeetlePosition, comp.EmergenceTick, comp.LifeExpectancy]
 
 	sourceTrees []comp.Position
 }
@@ -55,13 +55,12 @@ func (s *BeetleEmergence) Update(_ *ecs.World) {
 	}
 
 	i := 0
-	s.builder.NewBatchFn(len(s.sourceTrees)*s.BeetlesPerTree, func(_ ecs.Entity, bp *comp.BeetlePosition, et *comp.EmergenceTick, le *comp.LifeExpectancy, lt *comp.LastTree) {
+	s.builder.NewBatchFn(len(s.sourceTrees)*s.BeetlesPerTree, func(_ ecs.Entity, bp *comp.BeetlePosition, et *comp.EmergenceTick, le *comp.LifeExpectancy) {
 		idx := i / s.BeetlesPerTree
 		pos := &s.sourceTrees[idx]
 		bp.X, bp.Y = pos.X, pos.Y
 		et.TickOfEmergence = tick
 		le.TickOfDeath = tick + min(int(util.ExpFloat64(rng)*s.LifeExpectancy), s.MaxAge)
-		lt.Index = res.NoCell
 		i++
 	})
 

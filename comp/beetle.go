@@ -15,8 +15,3 @@ type EmergenceTick struct {
 type LifeExpectancy struct {
 	TickOfDeath int
 }
-
-// LastTree component of beetles, storing the last tree visited.
-type LastTree struct {
-	Index uint32
-}
