@@ -100,7 +100,7 @@ type TreeAttraction struct {
 
 	// presence marks the cells containing a matching tree. Recalculated
 	// together with the attraction field, and published along with it for
-	// other systems (e.g. BeetleMovement).
+	// other systems (e.g. BeetleMovementByField).
 	presence res.Grid[bool]
 
 	// source is the tree cell each cell's attraction value was propagated

@@ -12,11 +12,11 @@ import (
 )
 
 func init() {
-	config.Register[BeetleMovement]()
+	config.Register[BeetleMovementByField]()
 }
 
-// BeetleMovement system.
-type BeetleMovement struct {
+// BeetleMovementByField system.
+type BeetleMovementByField struct {
 	StepsPerTick          int     `yaml:"steps_per_tick"`
 	DurationFeeding       int     `yaml:"duration_feeding"`
 	DurationEggLaying     int     `yaml:"duration_egg_laying"`
@@ -45,7 +45,7 @@ var neighborOffsets = [8][2]int{
 }
 
 // Initialize the system.
-func (s *BeetleMovement) Initialize(world *ecs.World) {
+func (s *BeetleMovementByField) Initialize(world *ecs.World) {
 	s.timeRes = s.timeRes.New(world)
 	s.randRes = s.randRes.New(world)
 	s.healthyFieldRes = s.healthyFieldRes.New(world)
@@ -61,7 +61,7 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 }
 
 // Update the system.
-func (s *BeetleMovement) Update(_ *ecs.World) {
+func (s *BeetleMovementByField) Update(_ *ecs.World) {
 	tick := s.timeRes.Get().Tick
 	src := s.randRes.Get()
 	rng := rand.New(src)
@@ -119,7 +119,7 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 // IntN(8) would take stdlib's power-of-two fast path (a single masked draw,
 // no rejection sampling), which diverges from the sibling Julia
 // implementation's frozen_rand_range -- see util.RandRange's doc comment.
-func (s *BeetleMovement) randomNeighbor(src rand.Source, x, y int) (int, int) {
+func (s *BeetleMovementByField) randomNeighbor(src rand.Source, x, y int) (int, int) {
 	for {
 		o := neighborOffsets[util.RandRange(src, uint64(len(neighborOffsets)))]
 		nx, ny := x+o[0], y+o[1]
@@ -134,7 +134,7 @@ func (s *BeetleMovement) randomNeighbor(src rand.Source, x, y int) (int, int) {
 // that a flat field doesn't bias movement towards the first neighborOffsets.
 // Draws a random number only if there is a tie, via util.RandRange (see
 // randomNeighbor).
-func (s *BeetleMovement) maxFieldNeighbor(src rand.Source, field *res.Grid[float64], x, y int) (int, int) {
+func (s *BeetleMovementByField) maxFieldNeighbor(src rand.Source, field *res.Grid[float64], x, y int) (int, int) {
 	var candidates [len(neighborOffsets)]uint8
 	n := 0
 	var bestV float64
@@ -167,4 +167,4 @@ func (s *BeetleMovement) maxFieldNeighbor(src rand.Source, field *res.Grid[float
 }
 
 // Finalize the system.
-func (s *BeetleMovement) Finalize(_ *ecs.World) {}
+func (s *BeetleMovementByField) Finalize(_ *ecs.World) {}

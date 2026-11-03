@@ -87,7 +87,7 @@ func setup(width, height, ticks int) *app.App {
 		DensityRadius: 20,
 		DensityWeight: 1.0,
 	})
-	app.AddSystem(&sys.BeetleMovement{
+	app.AddSystem(&sys.BeetleMovementByField{
 		StepsPerTick:          7,
 		DurationFeeding:       3,
 		DurationEggLaying:     8,

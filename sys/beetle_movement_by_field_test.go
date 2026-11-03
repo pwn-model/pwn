@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newMaxFieldNeighborSetup(seed uint64) (*BeetleMovement, res.Grid[float64], *res.Xoshiro256pp) {
-	s := &BeetleMovement{width: 10, height: 10}
+func newMaxFieldNeighborSetup(seed uint64) (*BeetleMovementByField, res.Grid[float64], *res.Xoshiro256pp) {
+	s := &BeetleMovementByField{width: 10, height: 10}
 	field := res.NewGrid[float64](10, 10, 10)
 	return s, field, res.NewXoshiro256pp(seed)
 }
