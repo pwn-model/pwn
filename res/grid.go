@@ -1,5 +1,14 @@
 package res
 
+// Cell coordinates on a grid.
+type Cell struct {
+	X, Y int
+}
+
+// NoCell is a placeholder for the absence of a cell, e.g. of an attraction
+// source.
+var NoCell = Cell{-1, -1}
+
 // Grid resource.
 //
 // Values are stored column-major (consecutive y for fixed x are contiguous),

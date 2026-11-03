@@ -123,6 +123,9 @@ func TestTreeAttractionZeroWeightFavoursCloserIsolatedTree(t *testing.T) {
 	grid := ecs.GetResource[res.HealthyTreeAttraction](world).Attraction
 	decay := math.Exp(-10.0 * math.Ln2 / halfDistance)
 	assert.InDelta(t, math.Pow(decay, 10), grid.Get(60, 25), 1e-9)
+
+	source := ecs.GetResource[res.HealthyTreeAttraction](world).Source
+	assert.Equal(t, res.Cell{X: 50, Y: 25}, source.Get(60, 25))
 }
 
 func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
@@ -149,6 +152,10 @@ func TestTreeAttractionWeightLetsFartherDenserClusterWin(t *testing.T) {
 	clusterValue := (9.0 / maxCount) * math.Pow(decay, 39)
 	assert.Greater(t, clusterValue, isolatedValue, "sanity check: chosen HalfDistance must make the cluster the stronger source")
 	assert.InDelta(t, clusterValue, grid.Get(60, 25), 1e-9)
+
+	// The source is the cluster's nearest tree, not the closer lone tree.
+	source := ecs.GetResource[res.HealthyTreeAttraction](world).Source
+	assert.Equal(t, res.Cell{X: 99, Y: 25}, source.Get(60, 25))
 }
 
 // A fully-occupied patch (a tree in every cell of its own DensityRadius
@@ -291,6 +298,78 @@ func TestTreeAttractionSeedsMatchBruteForce(t *testing.T) {
 			}
 			expected := math.Pow(float64(count)/s.maxCount, s.DensityWeight)
 			assert.Equal(t, expected, s.attraction.Get(x, y), "cell (%d, %d)", x, y)
+		}
+	}
+}
+
+// Without any matching tree, no cell has a source.
+func TestTreeAttractionNoTreesNoSource(t *testing.T) {
+	world, _ := setupTreeAttractionWorld(t)
+
+	s := TreeAttraction{TickOfYear: 0, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1}
+	s.Initialize(world)
+	s.Update(world)
+
+	source := ecs.GetResource[res.HealthyTreeAttraction](world).Source
+	for x := range source.Width() {
+		for y := range source.Height() {
+			assert.Equal(t, res.NoCell, source.Get(x, y))
+		}
+	}
+}
+
+// Every cell's traced source is a tree cell, the cell's value is exactly
+// that source's seed decayed over the octile distance between them, and no
+// other tree contributes more -- i.e. the source is the tree that wins the
+// max-relaxation, checked by brute force over all trees.
+func TestTreeAttractionSourceMatchesBruteForce(t *testing.T) {
+	a := app.New()
+	ws := res.NewWorldSize(300, 200, 10)
+	ecs.AddResource(a.World, &ws)
+	ecs.AddResource(a.World, &res.Time{TickOfYear: 0})
+	posMap := ecs.NewMap1[comp.Position](a.World)
+
+	src := res.NewXoshiro256pp(1)
+	w, h := ws.Width(), ws.Height()
+	for range 40 {
+		posMap.NewEntity(&comp.Position{X: int(src.Uint64() % uint64(w)), Y: int(src.Uint64() % uint64(h))})
+	}
+
+	s := TreeAttraction{TickOfYear: 0, HalfDistance: 50, DensityRadius: 40, DensityWeight: 1.5}
+	s.Initialize(a.World)
+	s.fillFromQuery()
+
+	seeds := res.NewGrid[float64](w, h, ws.CellSize())
+	var trees []res.Cell
+	for x := range w {
+		for y := range h {
+			seeds.Set(x, y, s.attraction.Get(x, y))
+			if s.presence.Get(x, y) {
+				trees = append(trees, res.Cell{X: x, Y: y})
+			}
+		}
+	}
+
+	propagateAttraction(&s.attraction, &s.source, s.HalfDistance)
+
+	decay := math.Exp(-float64(ws.CellSize()) * math.Ln2 / s.HalfDistance)
+	contribution := func(x, y int, c res.Cell) float64 {
+		dx, dy := math.Abs(float64(x-c.X)), math.Abs(float64(y-c.Y))
+		dist := max(dx, dy) + (math.Sqrt2-1)*min(dx, dy)
+		return seeds.Get(c.X, c.Y) * math.Pow(decay, dist)
+	}
+
+	for x := range w {
+		for y := range h {
+			c := s.source.Get(x, y)
+			if !assert.True(t, s.presence.Get(c.X, c.Y), "cell (%d, %d): source %v is not a tree", x, y, c) {
+				continue
+			}
+			v := s.attraction.Get(x, y)
+			assert.InEpsilon(t, contribution(x, y, c), v, 1e-9, "cell (%d, %d)", x, y)
+			for _, tree := range trees {
+				assert.LessOrEqual(t, contribution(x, y, tree), v*(1+1e-9), "cell (%d, %d), tree %v", x, y, tree)
+			}
 		}
 	}
 }

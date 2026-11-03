@@ -29,6 +29,13 @@ func init() {
 // uniform value: a denser cluster starts from a taller seed, so it can
 // out-reach and win cells that a closer but sparser source would otherwise
 // have claimed by max-relaxation.
+//
+// Along with the field, propagateAttraction traces each cell's source: the
+// tree cell its value was propagated from. This is not necessarily the
+// nearest tree: a cell won by a farther but denser cluster gets a cell of
+// that cluster as its source. With DensityWeight > 0, even a tree's own
+// cell can get another source, if a neighbouring dense cluster out-reaches
+// its own seed.
 type TreeAttraction struct {
 	TickOfYear int `yaml:"tick_of_year"` // Tick of year when tree attraction is calculated.
 
@@ -96,6 +103,11 @@ type TreeAttraction struct {
 	// other systems (e.g. BeetleMovement).
 	presence res.Grid[bool]
 
+	// source is the tree cell each cell's attraction value was propagated
+	// from, res.NoCell where there is none. Recalculated together with the
+	// attraction field, and published along with it.
+	source res.Grid[res.Cell]
+
 	// sat is a reused (width+1)*(height+1) summed-area-table buffer for
 	// counting each source's local density, laid out the same column-major
 	// way as res.Grid with an extra leading zero row/column. Left
@@ -117,10 +129,15 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 	ws := ecs.GetResource[res.WorldSize](world)
 	s.attraction = res.NewGrid[float64](ws.Width(), ws.Height(), ws.CellSize())
 	s.presence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
+	s.source = res.NewGrid[res.Cell](ws.Width(), ws.Height(), ws.CellSize())
 	if s.DamagedTrees {
-		ecs.AddResource(world, &res.DamagedTreeAttraction{Attraction: s.attraction, Presence: s.presence})
+		ecs.AddResource(world, &res.DamagedTreeAttraction{
+			Attraction: s.attraction, Presence: s.presence, Source: s.source,
+		})
 	} else {
-		ecs.AddResource(world, &res.HealthyTreeAttraction{Attraction: s.attraction, Presence: s.presence})
+		ecs.AddResource(world, &res.HealthyTreeAttraction{
+			Attraction: s.attraction, Presence: s.presence, Source: s.source,
+		})
 	}
 
 	// At DensityWeight 0, occupancy^0 is 1 regardless of local density (see
@@ -144,7 +161,7 @@ func (s *TreeAttraction) Update(_ *ecs.World) {
 
 	if toy == s.TickOfYear {
 		s.fillFromQuery()
-		propagateAttraction(&s.attraction, s.HalfDistance)
+		propagateAttraction(&s.attraction, &s.source, s.HalfDistance)
 	}
 }
 
@@ -154,8 +171,9 @@ func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 // fillFromQuery marks every cell containing a matching tree in s.presence
 // and seeds the attraction grid: every such cell is set to that source's own
 // local occupancy fraction (localCount divided by maxCount, always in
-// (0, 1]) raised to DensityWeight, everything else to 0.
-// propagateAttraction then propagates these seeds outward.
+// (0, 1]) raised to DensityWeight, everything else to 0. Every such cell is
+// its own source, every other cell has none (res.NoCell).
+// propagateAttraction then propagates these seeds and sources outward.
 //
 // This is the only pass over the trees. It seeds every source at 1, which
 // is final for DensityWeight 0 (occupancy^0 is 1 for any occupancy);
@@ -163,6 +181,7 @@ func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 func (s *TreeAttraction) fillFromQuery() {
 	s.presence.Fill(false)
 	s.attraction.Fill(0.0)
+	s.source.Fill(res.NoCell)
 
 	q := s.filter.Query()
 	for q.NextTable() {
@@ -171,6 +190,7 @@ func (s *TreeAttraction) fillFromQuery() {
 			pos := &positions[i]
 			s.presence.Set(pos.X, pos.Y, true)
 			s.attraction.Set(pos.X, pos.Y, 1.0)
+			s.source.Set(pos.X, pos.Y, res.Cell{X: pos.X, Y: pos.Y})
 		}
 	}
 

@@ -19,7 +19,13 @@ import (
 // because the grid has no obstacles, so any shortest path from a source can
 // be split into one forward-monotone and one backward-monotone segment, each
 // fully resolved by one of the two passes.
-func propagateAttraction(grid *res.Grid[float64], halfDistance float64) {
+//
+// Whenever a cell's value is replaced by one propagated from a neighbour,
+// the neighbour's source is copied into source along with it, so that each
+// cell ends up with the source cell its final value originates from. On
+// ties, a cell keeps its current value and source, and among neighbours
+// the first in sweep offset order wins.
+func propagateAttraction(grid *res.Grid[float64], source *res.Grid[res.Cell], halfDistance float64) {
 	w, h := grid.Width(), grid.Height()
 	decay := math.Exp(-float64(grid.CellSize()) * math.Ln2 / halfDistance)
 
@@ -32,6 +38,7 @@ func propagateAttraction(grid *res.Grid[float64], halfDistance float64) {
 
 	relax := func(x, y int, offsets [4][2]int) {
 		best := grid.Get(x, y)
+		bestIdx := -1
 		for i, o := range offsets {
 			nx, ny := x+o[0], y+o[1]
 			if nx < 0 || nx >= w || ny < 0 || ny >= h {
@@ -39,9 +46,14 @@ func propagateAttraction(grid *res.Grid[float64], halfDistance float64) {
 			}
 			if v := grid.Get(nx, ny) * decays[i]; v > best {
 				best = v
+				bestIdx = i
 			}
 		}
-		grid.Set(x, y, best)
+		if bestIdx >= 0 {
+			o := offsets[bestIdx]
+			grid.Set(x, y, best)
+			source.Set(x, y, source.Get(x+o[0], y+o[1]))
+		}
 	}
 
 	for x := range w {
