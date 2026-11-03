@@ -36,14 +36,6 @@ type BeetleMovementByField struct {
 	height int
 }
 
-// neighborOffsets are the (dx, dy) offsets of the 8 Moore-neighborhood cells
-// around a beetle's current cell.
-var neighborOffsets = [8][2]int{
-	{-1, -1}, {0, -1}, {1, -1},
-	{-1, 0}, {1, 0},
-	{-1, 1}, {0, 1}, {1, 1},
-}
-
 // Initialize the system.
 func (s *BeetleMovementByField) Initialize(world *ecs.World) {
 	s.timeRes = s.timeRes.New(world)

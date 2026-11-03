@@ -14,7 +14,7 @@ func TestBeetleEmergenceSkipsWrongTickOfYear(t *testing.T) {
 	a := app.New()
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 1})
 
-	s := BeetleEmergence{TickOfYear: 0, BeetlesPerTree: 5, LifeExpectancy: 10}
+	s := BeetleEmergence{TickOfYear: 0, BeetlesPerTree: 5, LifeExpectancy: 10, MaxAge: 12}
 	s.Initialize(a.World)
 
 	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
@@ -32,7 +32,7 @@ func TestBeetleEmergenceCreatesBeetlesFromSourceTrees(t *testing.T) {
 	time := res.Time{TickOfYear: 3, Tick: 20}
 	ecs.AddResource(a.World, &time)
 
-	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 4, LifeExpectancy: 10}
+	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 4, LifeExpectancy: 10, MaxAge: 12}
 	s.Initialize(a.World)
 
 	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
@@ -53,6 +53,7 @@ func TestBeetleEmergenceCreatesBeetlesFromSourceTrees(t *testing.T) {
 		// ExpFloat64 is never negative, so death can never precede the
 		// current tick.
 		assert.GreaterOrEqual(t, le.TickOfDeath, time.Tick)
+		assert.LessOrEqual(t, le.TickOfDeath, time.Tick+s.MaxAge)
 		// Freshly emerged beetles have not visited any tree yet.
 		assert.Equal(t, res.NoCell, lt.Index)
 	}
@@ -66,7 +67,7 @@ func TestBeetleEmergenceRequiresBothDamagedAndInfected(t *testing.T) {
 	a := app.New()
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 3})
 
-	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 5, LifeExpectancy: 10}
+	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 5, LifeExpectancy: 10, MaxAge: 12}
 	s.Initialize(a.World)
 
 	damagedOnly := ecs.NewMap2[comp.Position, comp.Colonized](a.World)
@@ -86,7 +87,7 @@ func TestBeetleEmergenceNoSourceTreesNoOp(t *testing.T) {
 	a := app.New()
 	ecs.AddResource(a.World, &res.Time{TickOfYear: 3})
 
-	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 5, LifeExpectancy: 10}
+	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 5, LifeExpectancy: 10, MaxAge: 12}
 	s.Initialize(a.World)
 
 	assert.NotPanics(t, func() { s.Update(a.World) })
@@ -101,7 +102,7 @@ func TestBeetleEmergenceSourceBufferDoesNotLeakAcrossTicks(t *testing.T) {
 	time := res.Time{TickOfYear: 3}
 	ecs.AddResource(a.World, &time)
 
-	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 2, LifeExpectancy: 10}
+	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 2, LifeExpectancy: 10, MaxAge: 12}
 	s.Initialize(a.World)
 
 	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
@@ -116,4 +117,31 @@ func TestBeetleEmergenceSourceBufferDoesNotLeakAcrossTicks(t *testing.T) {
 	q := ecs.NewFilter1[comp.BeetlePosition](a.World).Query()
 	assert.Equal(t, 4, q.Count())
 	q.Close()
+}
+
+// With a life expectancy far above MaxAge, (almost) all life spans are
+// capped at MaxAge, and none exceeds it.
+func TestBeetleEmergenceCapsLifeSpanAtMaxAge(t *testing.T) {
+	a := app.New()
+	time := res.Time{TickOfYear: 3, Tick: 20}
+	ecs.AddResource(a.World, &time)
+
+	s := BeetleEmergence{TickOfYear: 3, BeetlesPerTree: 100, LifeExpectancy: 1000, MaxAge: 12}
+	s.Initialize(a.World)
+
+	sourceMap := ecs.NewMap3[comp.Position, comp.Colonized, comp.Infected](a.World)
+	sourceMap.NewEntity(&comp.Position{X: 1, Y: 2}, &comp.Colonized{}, &comp.Infected{})
+
+	s.Update(a.World)
+
+	capped := 0
+	q := ecs.NewFilter1[comp.LifeExpectancy](a.World).Query()
+	for q.Next() {
+		le := q.Get()
+		assert.LessOrEqual(t, le.TickOfDeath, time.Tick+s.MaxAge)
+		if le.TickOfDeath == time.Tick+s.MaxAge {
+			capped++
+		}
+	}
+	assert.Greater(t, capped, 90)
 }

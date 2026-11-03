@@ -46,6 +46,11 @@ func (g *Grid[T]) Set(x, y int, e T) {
 	g.values[y+g.height*x] = e
 }
 
+// Contains reports whether (x, y) is a cell within the grid.
+func (g *Grid[T]) Contains(x, y int) bool {
+	return x >= 0 && x < g.width && y >= 0 && y < g.height
+}
+
 // Index returns the linear index of the cell at (x, y), as used for the
 // grid's own storage. Only valid for grids with less than [NoCell] cells,
 // so that NoCell is never a valid index.

@@ -44,3 +44,16 @@ func TestGridIndexCoords(t *testing.T) {
 	g.Set(3, 7, 42)
 	assert.Equal(t, uint32(42), g.values[g.Index(3, 7)])
 }
+
+func TestGridContains(t *testing.T) {
+	g := NewGrid[bool](20, 10, 1)
+
+	assert.True(t, g.Contains(0, 0))
+	assert.True(t, g.Contains(19, 9))
+	assert.True(t, g.Contains(5, 5))
+
+	assert.False(t, g.Contains(-1, 0))
+	assert.False(t, g.Contains(0, -1))
+	assert.False(t, g.Contains(20, 0))
+	assert.False(t, g.Contains(0, 10))
+}

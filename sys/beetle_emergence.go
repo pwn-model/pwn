@@ -18,6 +18,7 @@ type BeetleEmergence struct {
 	TickOfYear     int     `yaml:"tick_of_year"`
 	BeetlesPerTree int     `yaml:"beetles_per_tree"`
 	LifeExpectancy float64 `yaml:"life_expectancy"`
+	MaxAge         int     `yaml:"max_age"` // Maximum life span in ticks; caps the exponentially distributed one.
 
 	timeRes ecs.Resource[res.Time]
 	randRes ecs.Resource[resource.Rand]
@@ -59,7 +60,7 @@ func (s *BeetleEmergence) Update(_ *ecs.World) {
 		pos := &s.sourceTrees[idx]
 		bp.X, bp.Y = pos.X, pos.Y
 		et.TickOfEmergence = tick
-		le.TickOfDeath = tick + int(util.ExpFloat64(rng)*s.LifeExpectancy)
+		le.TickOfDeath = tick + min(int(util.ExpFloat64(rng)*s.LifeExpectancy), s.MaxAge)
 		lt.Index = res.NoCell
 		i++
 	})

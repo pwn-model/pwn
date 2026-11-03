@@ -9,20 +9,27 @@ import (
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
 	config.Register[BeetleMovement]()
 }
 
+// neighborOffsets are the (dx, dy) offsets of the 8 Moore-neighborhood cells
+// around a beetle's current cell.
+var neighborOffsets = [8][2]int{
+	{-1, -1}, {0, -1}, {1, -1},
+	{-1, 0}, {1, 0},
+	{-1, 1}, {0, 1}, {1, 1},
+}
+
 // BeetleMovement system.
 type BeetleMovement struct {
-	StepsPerTick          int     `yaml:"steps_per_tick"`
-	DistancePerStep       float64 `yaml:"distance_per_step"`
-	DurationFeeding       int     `yaml:"duration_feeding"`
-	DurationEggLaying     int     `yaml:"duration_egg_laying"`
-	LeaveTreeProbability  float64 `yaml:"leave_tree_probability"`
-	RandomWalkProbability float64 `yaml:"random_walk_probability"`
+	StepsPerTick         int     `yaml:"steps_per_tick"`
+	DistancePerStep      float64 `yaml:"distance_per_step"`
+	DurationFeeding      int     `yaml:"duration_feeding"`
+	LeaveTreeProbability float64 `yaml:"leave_tree_probability"`
 
 	timeRes         ecs.Resource[res.Time]
 	randRes         ecs.Resource[resource.Rand]
@@ -62,9 +69,6 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 	src := s.randRes.Get()
 	rng := rand.New(src)
 
-	maxStep := s.distanceInCells
-	maxStepSq := maxStep * maxStep
-
 	healthy := s.healthyFieldRes.Get()
 	damaged := s.damagedFieldRes.Get()
 	var nearest res.Grid[uint32]
@@ -79,43 +83,60 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 			pos := &positions[i]
 			et := &emergenceTicks[i]
 
-			switch {
-			case tick < et.TickOfEmergence+s.DurationFeeding:
+			isFeeding := true
+			if tick >= et.TickOfEmergence+s.DurationFeeding {
+				if rng.Float64() < 0.5 { // TODO: make parameter
+					isFeeding = false
+				}
+			}
+
+			if isFeeding {
 				nearest = healthy.Source
 				presence = healthy.Presence
-			case tick < et.TickOfEmergence+s.DurationFeeding+s.DurationEggLaying:
+			} else {
 				nearest = damaged.Source
 				presence = damaged.Presence
-			default:
-				continue // TODO: remove beetle?
 			}
 
 			for range s.StepsPerTick {
-				if !presence.Get(pos.X, pos.Y) || rng.Float64() < s.LeaveTreeProbability {
-					tx, ty := nearest.Coords(nearest.Get(pos.X, pos.Y))
-					dx, dy := float64(tx-pos.X), float64(ty-pos.Y)
-					distSq := dx*dx + dy*dy
-					if distSq <= maxStepSq {
-						pos.X, pos.Y = tx, ty
-					} else {
-						frac := maxStep / math.Sqrt(distSq)
-						pos.X += int(math.Round(dx * frac))
-						pos.Y += int(math.Round(dy * frac))
+				maxStep := s.distanceInCells
+				if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
+					lastTree := nearest.Get(pos.X, pos.Y)
+					offset := randomOffset(src)
+					for nearest.Get(pos.X, pos.Y) == lastTree && maxStep >= 1 {
+						pos.X += offset[0]
+						pos.Y += offset[1]
+						maxStep -= 1 // TODO: exact cost for diagonal steps?
+						if !presence.Contains(pos.X, pos.Y) {
+							pos.X -= offset[0]
+							pos.Y -= offset[1]
+							offset = randomOffset(src)
+							continue
+						}
 					}
-
-					/*if rng.Float64() < s.RandomWalkProbability {
-						pos.X, pos.Y = s.randomNeighbor(src, pos.X, pos.Y)
-					} else {
-						pos.X, pos.Y = s.maxFieldNeighbor(src, &field, pos.X, pos.Y)
-					}*/
 				}
 
-				if !presence.Get(pos.X, pos.Y) {
+				if presence.Get(pos.X, pos.Y) {
+					s.feed(pos.X, pos.Y)
 					continue
 				}
 
-				feeding := s.feedingInfected.Get(pos.X, pos.Y)
-				s.feedingInfected.Set(pos.X, pos.Y, feeding+1)
+				maxStepSq := maxStep * maxStep
+
+				tx, ty := nearest.Coords(nearest.Get(pos.X, pos.Y))
+				dx, dy := float64(tx-pos.X), float64(ty-pos.Y)
+				distSq := dx*dx + dy*dy
+				if distSq <= maxStepSq {
+					pos.X, pos.Y = tx, ty
+				} else {
+					frac := maxStep / math.Sqrt(distSq)
+					pos.X += int(math.Round(dx * frac))
+					pos.Y += int(math.Round(dy * frac))
+				}
+
+				if presence.Get(pos.X, pos.Y) {
+					s.feed(pos.X, pos.Y)
+				}
 			}
 		}
 	}
@@ -123,3 +144,14 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 
 // Finalize the system.
 func (s *BeetleMovement) Finalize(_ *ecs.World) {}
+
+// feed counts a beetle feeding in cell (x, y).
+func (s *BeetleMovement) feed(x, y int) {
+	s.feedingInfected.Set(x, y, s.feedingInfected.Get(x, y)+1)
+}
+
+// randomOffset draws one of the neighborOffsets uniformly at random, via
+// util.RandRange (see BeetleMovementByField.randomNeighbor).
+func randomOffset(src rand.Source) [2]int {
+	return neighborOffsets[util.RandRange(src, uint64(len(neighborOffsets)))]
+}

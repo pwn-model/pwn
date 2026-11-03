@@ -72,6 +72,7 @@ func setup(width, height, ticks int) *app.App {
 		TickOfYear:     19,
 		BeetlesPerTree: 5,
 		LifeExpectancy: 5,
+		MaxAge:         18,
 	})
 	app.AddSystem(&sys.TreeAttraction{
 		TickOfYear:    18,
