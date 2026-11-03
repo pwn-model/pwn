@@ -28,12 +28,8 @@ type BeetleMovement struct {
 	healthyFieldRes ecs.Resource[res.HealthyTreeAttraction]
 	damagedFieldRes ecs.Resource[res.DamagedTreeAttraction]
 
-	filter        *ecs.Filter2[comp.BeetlePosition, comp.EmergenceTick]
-	filterHealthy *ecs.Filter1[comp.Position]
-	filterDamaged *ecs.Filter1[comp.Position]
+	filter *ecs.Filter2[comp.BeetlePosition, comp.EmergenceTick]
 
-	healthyPresence res.Grid[bool]
-	damagedPresence res.Grid[bool]
 	feedingInfected res.Grid[uint32]
 
 	width  int
@@ -56,13 +52,9 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 	s.damagedFieldRes = s.damagedFieldRes.New(world)
 
 	s.filter = s.filter.New(world)
-	s.filterHealthy = s.filterHealthy.New(world).Without(ecs.C[comp.Damaged]())
-	s.filterDamaged = s.filterDamaged.New(world).With(ecs.C[comp.Damaged]())
 
 	ws := ecs.GetResource[res.WorldSize](world)
 	s.width, s.height = ws.Width(), ws.Height()
-	s.healthyPresence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
-	s.damagedPresence = res.NewGrid[bool](ws.Width(), ws.Height(), ws.CellSize())
 	s.feedingInfected = res.NewGrid[uint32](ws.Width(), ws.Height(), ws.CellSize())
 
 	ecs.AddResource(world, &res.FeedingInfectedBeetles{Grid: s.feedingInfected})
@@ -74,21 +66,15 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 	src := s.randRes.Get()
 	rng := rand.New(src)
 
-	healthyField := s.healthyFieldRes.Get().Grid
-	damagedField := s.damagedFieldRes.Get().Grid
+	healthy := s.healthyFieldRes.Get()
+	damaged := s.damagedFieldRes.Get()
 	var field res.Grid[float64]
 	var presence res.Grid[bool]
 
-	presenceCalculated := false
 	s.feedingInfected.Fill(0)
 
 	q := s.filter.Query()
 	for q.NextTable() {
-		if !presenceCalculated {
-			s.calcPresence(world)
-			presenceCalculated = true
-		}
-
 		positions, emergenceTicks := q.GetColumns()
 		for i := range positions {
 			pos := &positions[i]
@@ -96,11 +82,11 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 
 			switch {
 			case tick < et.TickOfEmergence+s.DurationFeeding:
-				field = healthyField
-				presence = s.healthyPresence
+				field = healthy.Attraction
+				presence = healthy.Presence
 			case tick < et.TickOfEmergence+s.DurationFeeding+s.DurationEggLaying:
-				field = damagedField
-				presence = s.damagedPresence
+				field = damaged.Attraction
+				presence = damaged.Presence
 			default:
 				continue // TODO: remove beetle?
 			}
@@ -182,26 +168,3 @@ func (s *BeetleMovement) maxFieldNeighbor(src rand.Source, field *res.Grid[float
 
 // Finalize the system.
 func (s *BeetleMovement) Finalize(_ *ecs.World) {}
-
-func (s *BeetleMovement) calcPresence(_ *ecs.World) {
-	s.healthyPresence.Fill(false)
-	s.damagedPresence.Fill(false)
-
-	q := s.filterHealthy.Query()
-	for q.NextTable() {
-		positions := q.GetColumns()
-		for i := range positions {
-			pos := &positions[i]
-			s.healthyPresence.Set(pos.X, pos.Y, true)
-		}
-	}
-
-	q = s.filterDamaged.Query()
-	for q.NextTable() {
-		positions := q.GetColumns()
-		for i := range positions {
-			pos := &positions[i]
-			s.damagedPresence.Set(pos.X, pos.Y, true)
-		}
-	}
-}

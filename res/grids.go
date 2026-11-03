@@ -9,12 +9,18 @@ type TreeGrid struct {
 
 // HealthyTreeAttraction resource.
 type HealthyTreeAttraction struct {
-	Grid[float64]
+	// Attraction field of healthy trees, updated once per year.
+	Attraction Grid[float64]
+	// Presence of healthy trees per cell, updated together with Attraction.
+	Presence Grid[bool]
 }
 
 // DamagedTreeAttraction resource.
 type DamagedTreeAttraction struct {
-	Grid[float64]
+	// Attraction field of damaged trees, updated once per year.
+	Attraction Grid[float64]
+	// Presence of damaged trees per cell, updated together with Attraction.
+	Presence Grid[bool]
 }
 
 // HealthyTreeAttractionCoarse resource, on the coarse grid of the

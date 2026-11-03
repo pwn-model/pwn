@@ -24,9 +24,9 @@ type TreeAttractionMap struct {
 // Initialize the observer.
 func (o *TreeAttractionMap) Initialize(w *ecs.World) {
 	if o.DamagedTrees {
-		o.grid = ecs.GetResource[res.DamagedTreeAttraction](w).Grid
+		o.grid = ecs.GetResource[res.DamagedTreeAttraction](w).Attraction
 	} else {
-		o.grid = ecs.GetResource[res.HealthyTreeAttraction](w).Grid
+		o.grid = ecs.GetResource[res.HealthyTreeAttraction](w).Attraction
 	}
 	o.values = make([]float64, o.grid.Width()*o.grid.Height())
 }
