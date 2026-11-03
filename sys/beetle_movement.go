@@ -16,19 +16,18 @@ func init() {
 	config.Register[BeetleMovement]()
 }
 
-// neighborOffsets are the (dx, dy) offsets of the 8 Moore-neighborhood cells
-// around a beetle's current cell.
-var neighborOffsets = [8][2]int{
-	{-1, -1}, {0, -1}, {1, -1},
-	{-1, 0}, {1, 0},
-	{-1, 1}, {0, 1}, {1, 1},
-}
-
 // BeetleMovement system.
 type BeetleMovement struct {
 	StepsPerTick    int     `yaml:"steps_per_tick"`
 	DistancePerStep float64 `yaml:"distance_per_step"`
-	DurationFeeding int     `yaml:"duration_feeding"`
+	// EmergenceFlightDistance is the maximum distance, in meters, of the
+	// undirected flight that beetles make in their first movement step after
+	// emergence, before flying towards a target. The actual distance is
+	// drawn uniformly between 0 and this value. Spreads out the beetles
+	// emerging from the same tree, which would otherwise all fly to the same
+	// first target.
+	EmergenceFlightDistance float64 `yaml:"emergence_flight_distance"`
+	DurationFeeding         int     `yaml:"duration_feeding"`
 	// FeedingProbability is the probability that a beetle past
 	// DurationFeeding feeds (targets healthy trees) instead of laying eggs
 	// (targets damaged trees), drawn anew each movement step.
@@ -44,9 +43,13 @@ type BeetleMovement struct {
 
 	feedingInfected res.Grid[uint32]
 
-	distanceInCells float64
-	width           int
-	height          int
+	// toRemove is a reused buffer for beetles that left the world.
+	toRemove []ecs.Entity
+
+	distanceInCells        float64
+	emergenceFlightInCells float64
+	width                  int
+	height                 int
 }
 
 // Initialize the system.
@@ -65,10 +68,11 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 	ecs.AddResource(world, &res.FeedingInfectedBeetles{Grid: s.feedingInfected})
 
 	s.distanceInCells = s.DistancePerStep / float64(ws.CellSize())
+	s.emergenceFlightInCells = s.EmergenceFlightDistance / float64(ws.CellSize())
 }
 
 // Update the system.
-func (s *BeetleMovement) Update(_ *ecs.World) {
+func (s *BeetleMovement) Update(world *ecs.World) {
 	tick := s.timeRes.Get().Tick
 	src := s.randRes.Get()
 	rng := rand.New(src)
@@ -82,12 +86,13 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 
 	q := s.filter.Query()
 	for q.NextTable() {
+		entities := q.Entities()
 		positions, emergenceTicks := q.GetColumns()
 		for i := range positions {
 			pos := &positions[i]
 			et := &emergenceTicks[i]
 
-			for range s.StepsPerTick {
+			for step := range s.StepsPerTick {
 				isFeeding := true
 				if tick >= et.TickOfEmergence+s.DurationFeeding {
 					isFeeding = rng.Float64() < s.FeedingProbability
@@ -102,20 +107,25 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 				}
 
 				maxStep := s.distanceInCells
-				if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
-					lastTree := nearest.Get(pos.X, pos.Y)
-					offset := randomOffset(src)
-					for nearest.Get(pos.X, pos.Y) == lastTree && maxStep >= 1 {
-						pos.X += offset[0]
-						pos.Y += offset[1]
-						maxStep-- // TODO: exact cost for diagonal steps?
-						if !presence.Contains(pos.X, pos.Y) {
-							pos.X -= offset[0]
-							pos.Y -= offset[1]
-							offset = randomOffset(src)
-							continue
-						}
-					}
+				inside := true
+				if step == 0 && tick == et.TickOfEmergence {
+					// Undirected flight away from the tree the beetle emerged from,
+					// in one go, in a uniformly random direction.
+					flight := min(rng.Float64()*s.emergenceFlightInCells, maxStep)
+					dx, dy := util.RandomDirection(rng)
+					pos.X += int(math.Round(dx * flight))
+					pos.Y += int(math.Round(dy * flight))
+					maxStep -= flight
+					inside = nearest.Contains(pos.X, pos.Y)
+				} else if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
+					// Walk out of the area attracted by the tree the beetle leaves.
+					maxStep, inside = walk(rng, pos, &nearest, maxStep)
+				}
+
+				if !inside {
+					// The beetle left the world and dies.
+					s.toRemove = append(s.toRemove, entities[i])
+					break
 				}
 
 				if presence.Get(pos.X, pos.Y) {
@@ -142,6 +152,11 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 			}
 		}
 	}
+
+	for _, e := range s.toRemove {
+		world.RemoveEntity(e)
+	}
+	s.toRemove = s.toRemove[:0]
 }
 
 // Finalize the system.
@@ -152,8 +167,23 @@ func (s *BeetleMovement) feed(x, y int) {
 	s.feedingInfected.Set(x, y, s.feedingInfected.Get(x, y)+1)
 }
 
-// randomOffset draws one of the neighborOffsets uniformly at random, via
-// util.RandRange (see BeetleMovementByField.randomNeighbor).
-func randomOffset(src rand.Source) [2]int {
-	return neighborOffsets[util.RandRange(src, uint64(len(neighborOffsets)))]
+// walk moves pos along a straight line in a uniformly random direction, out
+// of the area of the source the beetle is in. It advances in steps of one
+// cell size of distance, each costing 1 of the budget, and stops as soon as
+// the cell's source differs, or the remaining budget (in cells) is below 1.
+// Returns the remaining budget, and false if the beetle left the grid (pos
+// is then outside of it).
+func walk(rng *rand.Rand, pos *comp.BeetlePosition, source *res.Grid[uint32], budget float64) (float64, bool) {
+	leaving := source.Get(pos.X, pos.Y)
+	dx, dy := util.RandomDirection(rng)
+	x0, y0 := pos.X, pos.Y
+	for k := 1; budget >= 1 && source.Get(pos.X, pos.Y) == leaving; k++ {
+		pos.X = x0 + int(math.Round(float64(k)*dx))
+		pos.Y = y0 + int(math.Round(float64(k)*dy))
+		budget--
+		if !source.Contains(pos.X, pos.Y) {
+			return budget, false
+		}
+	}
+	return budget, true
 }
