@@ -31,7 +31,7 @@ type BeetleMovement struct {
 	DurationFeeding int     `yaml:"duration_feeding"`
 	// FeedingProbability is the probability that a beetle past
 	// DurationFeeding feeds (targets healthy trees) instead of laying eggs
-	// (targets damaged trees), drawn anew each tick.
+	// (targets damaged trees), drawn anew each movement step.
 	FeedingProbability   float64 `yaml:"feeding_probability"`
 	LeaveTreeProbability float64 `yaml:"leave_tree_probability"`
 
@@ -87,20 +87,20 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 			pos := &positions[i]
 			et := &emergenceTicks[i]
 
-			isFeeding := true
-			if tick >= et.TickOfEmergence+s.DurationFeeding {
-				isFeeding = rng.Float64() < s.FeedingProbability
-			}
-
-			if isFeeding {
-				nearest = healthy.Source
-				presence = healthy.Presence
-			} else {
-				nearest = damaged.Source
-				presence = damaged.Presence
-			}
-
 			for range s.StepsPerTick {
+				isFeeding := true
+				if tick >= et.TickOfEmergence+s.DurationFeeding {
+					isFeeding = rng.Float64() < s.FeedingProbability
+				}
+
+				if isFeeding {
+					nearest = healthy.Source
+					presence = healthy.Presence
+				} else {
+					nearest = damaged.Source
+					presence = damaged.Presence
+				}
+
 				maxStep := s.distanceInCells
 				if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
 					lastTree := nearest.Get(pos.X, pos.Y)
