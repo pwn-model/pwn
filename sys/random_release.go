@@ -29,7 +29,7 @@ type RandomRelease struct {
 
 // Initialize the system.
 func (s *RandomRelease) Initialize(world *ecs.World) {
-	s.filter = s.filter.New(world).Without(ecs.C[comp.Damaged](), ecs.C[comp.Infected]())
+	s.filter = s.filter.New(world).With(ecs.C[comp.Damaged]()).Without(ecs.C[comp.Infected]())
 	s.mapper = s.mapper.New(world)
 	s.timeRes = s.timeRes.New(world)
 }

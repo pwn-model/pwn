@@ -108,7 +108,7 @@ func (s *BeetleMovement) Update(_ *ecs.World) {
 					for nearest.Get(pos.X, pos.Y) == lastTree && maxStep >= 1 {
 						pos.X += offset[0]
 						pos.Y += offset[1]
-						maxStep -= 1 // TODO: exact cost for diagonal steps?
+						maxStep-- // TODO: exact cost for diagonal steps?
 						if !presence.Contains(pos.X, pos.Y) {
 							pos.X -= offset[0]
 							pos.Y -= offset[1]
