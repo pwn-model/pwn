@@ -61,7 +61,7 @@ func (s *BeetleMovement) Initialize(world *ecs.World) {
 }
 
 // Update the system.
-func (s *BeetleMovement) Update(world *ecs.World) {
+func (s *BeetleMovement) Update(_ *ecs.World) {
 	tick := s.timeRes.Get().Tick
 	src := s.randRes.Get()
 	rng := rand.New(src)
