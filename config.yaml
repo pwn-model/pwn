@@ -133,3 +133,13 @@ windows:
         colors: viridis
         min: -4
         max: 0
+
+  - title: Attraction sources
+    drawers:
+      - type: Image
+        observer:
+          type: TreeAttractionSourceMap
+          damaged_trees: true
+        colors: turbo
+        min: 0
+        max: 1
