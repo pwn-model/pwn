@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -17,8 +18,8 @@ import (
 //   - every mapping key in node (recursively) that doesn't correspond to a
 //     field of t, except "type" at node's own top level (it selects a
 //     registry entry instead of being decoded into it);
-//   - if required is set, every field of t without a key in node (see
-//     [collectMissingFields]).
+//   - if required is set, every field of t without a key in node, and
+//     likewise for nested plain structs (see [collectMissingFields]).
 //
 // This is needed because every "type" + parameters entry is decoded via
 // [yaml.Node.Decode], which always decodes non-strictly: unlike
@@ -115,9 +116,11 @@ func collectUnknownFields(node *yaml.Node, t reflect.Type, allowed []string, msg
 // tagged `config:"optional"`, so that a parameter left out of a config file
 // is an error instead of silently taking its zero value.
 //
-// Only node's own keys are checked, not those of nested values: nested
-// "type" + parameters entries (e.g. an observer) check their own nodes when
-// decoded.
+// The same applies recursively to the given values of fields that are (or
+// hold, as slices, arrays, maps or pointers) plain structs, e.g. a list of
+// areas with their own parameters. Recursion stops at types with their own
+// UnmarshalYAML: nested "type" + parameters entries (e.g. an observer)
+// check their own nodes when decoded.
 func collectMissingFields(node *yaml.Node, t reflect.Type, msgs *[]string) {
 	for node != nil && node.Kind == yaml.AliasNode {
 		node = node.Alias
@@ -129,23 +132,65 @@ func collectMissingFields(node *yaml.Node, t reflect.Type, msgs *[]string) {
 		return // A kind mismatch; left for the actual decode to report.
 	}
 
-	keys := map[string]bool{}
+	keys := map[string]*yaml.Node{}
 	mappingKeys(node, keys)
 
 	var missing []string
 	for _, name := range requiredFields(t) {
-		if !keys[name] {
+		if _, ok := keys[name]; !ok {
 			missing = append(missing, name)
 		}
 	}
 	if len(missing) > 0 {
 		*msgs = append(*msgs, fmt.Sprintf("line %d: missing field(s) %s in type %s", node.Line, strings.Join(missing, ", "), t))
 	}
+
+	fields := map[string]reflect.Type{}
+	structFields(t, fields)
+	// Sorted, for a deterministic order of messages.
+	for _, name := range slices.Sorted(maps.Keys(fields)) {
+		if value, ok := keys[name]; ok {
+			collectNestedMissingFields(value, fields[name], msgs)
+		}
+	}
 }
 
-// mappingKeys adds the keys of mapping node to keys, including those of
-// mappings merged in via "<<: *anchor".
-func mappingKeys(node *yaml.Node, keys map[string]bool) {
+// collectNestedMissingFields applies [collectMissingFields] to node if t is
+// a plain struct, or to each of node's elements if t is a slice, array or
+// map of such.
+func collectNestedMissingFields(node *yaml.Node, t reflect.Type, msgs *[]string) {
+	for node != nil && node.Kind == yaml.AliasNode {
+		node = node.Alias
+	}
+	for t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if node == nil || t.Implements(unmarshalerType) || reflect.PointerTo(t).Implements(unmarshalerType) {
+		return
+	}
+
+	switch t.Kind() {
+	case reflect.Struct:
+		collectMissingFields(node, t, msgs)
+	case reflect.Slice, reflect.Array:
+		if node.Kind == yaml.SequenceNode {
+			for _, v := range node.Content {
+				collectNestedMissingFields(v, t.Elem(), msgs)
+			}
+		}
+	case reflect.Map:
+		if node.Kind == yaml.MappingNode {
+			for i := 1; i < len(node.Content); i += 2 {
+				collectNestedMissingFields(node.Content[i], t.Elem(), msgs)
+			}
+		}
+	}
+}
+
+// mappingKeys adds the keys of mapping node to keys, with their values,
+// including those of mappings merged in via "<<: *anchor". As in yaml's own
+// decoding, a mapping's own keys take precedence over merged ones.
+func mappingKeys(node *yaml.Node, keys map[string]*yaml.Node) {
 	for node != nil && node.Kind == yaml.AliasNode {
 		node = node.Alias
 	}
@@ -164,7 +209,13 @@ func mappingKeys(node *yaml.Node, keys map[string]bool) {
 			}
 			continue
 		}
-		keys[key.Value] = true
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		key := node.Content[i]
+		if key.Kind == yaml.ScalarNode && key.ShortTag() == "!!merge" {
+			continue
+		}
+		keys[key.Value] = node.Content[i+1]
 	}
 }
 

@@ -196,6 +196,43 @@ systems:
 	assert.ErrorContains(t, err, "line 6: missing field(s) ticks_per_year in type sys.UpdateTime")
 }
 
+// TestConfig_NestedStructs checks that a list of plain structs (not
+// "type" + parameters entries) is decoded, with unknown and missing keys
+// reported for each element.
+func TestConfig_NestedStructs(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+systems:
+  - type: InitTreeStands
+    stands:
+      - {x_min: 0, y_min: 0, x_max: 500, y_max: 1000, tree_probability: 0.9, damage_prevalence: 0.03, beetle_prevalence: 0}
+      - {x_min: 500, y_min: 0, x_max: 1000, y_max: 1000, tree_probability: 0.025, damage_prevalence: 0.25, beetle_prevalence: 0.1}
+`), &cfg)
+	require.NoError(t, err)
+	stands, ok := cfg.Systems[0].System.(*sys.InitTreeStands)
+	require.True(t, ok)
+	assert.Equal(t, []sys.TreeStand{
+		{XMin: 0, YMin: 0, XMax: 500, YMax: 1000, TreeProbability: 0.9, DamagePrevalence: 0.03, BeetlePrevalence: 0},
+		{XMin: 500, YMin: 0, XMax: 1000, YMax: 1000, TreeProbability: 0.025, DamagePrevalence: 0.25, BeetlePrevalence: 0.1},
+	}, stands.Stands)
+
+	err = yaml.Unmarshal([]byte(`
+systems:
+  - type: InitTreeStands
+    stands:
+      - {x_min: 0, y_min: 0, x_max: 500, y_max: 1000, tree_probability: 0.9, damage_prevalence: 0.03, beetle_prevalence: 0, bogus: 1}
+      - {x_min: 500, y_min: 0, x_max: 1000, y_max: 1000, tree_probability: 0.025, damage_prevalence: 0.25}
+`), &cfg)
+	assert.ErrorContains(t, err, "line 5: field bogus not found in type sys.TreeStand")
+	assert.ErrorContains(t, err, "line 6: missing field(s) beetle_prevalence in type sys.TreeStand")
+
+	err = yaml.Unmarshal([]byte(`
+systems:
+  - type: InitTreeStands
+`), &cfg)
+	assert.ErrorContains(t, err, "line 3: missing field(s) stands in type sys.InitTreeStands")
+}
+
 // TestConfig_UnmarshalSystems_MergeKey checks that parameters merged in
 // via "<<: *anchor" count as given.
 func TestConfig_UnmarshalSystems_MergeKey(t *testing.T) {
