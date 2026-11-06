@@ -151,3 +151,14 @@ func TestBeetleMovementLeaveTreeOutOfWorldDies(t *testing.T) {
 
 	assert.Empty(t, beetlePositions(world))
 }
+
+// Without an emergence flight, no random numbers are drawn for it: emerging
+// beetles still feeding (no feeding draw), not on a healthy tree (no leave
+// draw), fly to their target without using the RNG at all.
+func TestBeetleMovementNoEmergenceFlightDrawsNoRandomNumbers(t *testing.T) {
+	world, s := setupBeetleMovementWorld(t, 0)
+	s.Update(world)
+
+	src := ecs.GetResource[resource.Rand](world).Source
+	assert.Equal(t, res.NewXoshiro256pp(1).Uint64(), src.Uint64())
+}
