@@ -5,6 +5,7 @@ import (
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
@@ -22,16 +23,16 @@ func init() {
 // DensityWeight values, since healthy and damaged trees plausibly attract
 // vectors differently.
 //
-// Each source tree seeds propagateAttraction with its own local occupancy
-// fraction (see fillFromQuery), raised to DensityWeight, instead of a
-// uniform value: a denser cluster starts from a taller seed, so it can
+// Each source tree seeds util.PropagateAttraction with its own local
+// occupancy fraction (see fillFromQuery), raised to DensityWeight, instead
+// of a uniform value: a denser cluster starts from a taller seed, so it can
 // out-reach and win cells that a closer but sparser source would otherwise
 // have claimed by max-relaxation.
 //
-// Along with the field, propagateAttraction traces each cell's source: the
-// tree cell its value was propagated from. This is not necessarily the
-// nearest tree: a cell won by a farther but denser cluster gets a cell of
-// that cluster as its source. With DensityWeight > 0, even a tree's own
+// Along with the field, util.PropagateAttraction traces each cell's
+// source: the tree cell its value was propagated from. This is not
+// necessarily the nearest tree: a cell won by a farther but denser cluster
+// gets a cell of that cluster as its source. With DensityWeight > 0, even a tree's own
 // cell can get another source, if a neighbouring dense cluster out-reaches
 // its own seed.
 type TreeAttraction struct {
@@ -64,7 +65,7 @@ type TreeAttraction struct {
 	// Independent of HalfDistance: this is the "how clustered is this
 	// source" scale, not the "how far does its seed reach" scale. Must be
 	// a multiple of the world's base cell size. Unused, and not validated,
-	// when DensityWeight is 0 -- see DensityWeight and densitySeeding.
+	// when DensityWeight is 0 -- see DensityWeight and util.DensitySeeding.
 	DensityRadius int `yaml:"density_radius"`
 
 	// DensityWeight is the exponent applied to a source's local occupancy
@@ -75,7 +76,7 @@ type TreeAttraction struct {
 	// decay field), 1 makes the seed scale linearly with local occupancy,
 	// and >1 makes denser clusters reach disproportionately farther than
 	// the same trees spread out. Since occupancy is normalized to (0, 1],
-	// every seed -- and so, by propagateAttraction's max-relaxation, the
+	// every seed -- and so, by util.PropagateAttraction's max-relaxation, the
 	// whole resulting field -- stays within (0, 1] regardless of
 	// DensityRadius or how densely populated the world is.
 	DensityWeight float64 `yaml:"density_weight"`
@@ -98,7 +99,7 @@ type TreeAttraction struct {
 	source res.Grid[uint32]
 
 	// density scales each source's seed by its local density.
-	density densitySeeding
+	density util.DensitySeeding
 }
 
 // Initialize the system.
@@ -128,7 +129,7 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 		})
 	}
 
-	s.density = newDensitySeeding(s.DensityWeight, s.DensityRadius, ws)
+	s.density = util.NewDensitySeeding(s.DensityWeight, s.DensityRadius, ws)
 }
 
 // Update the system.
@@ -137,7 +138,7 @@ func (s *TreeAttraction) Update(_ *ecs.World) {
 
 	if toy == s.TickOfYear {
 		s.fillFromQuery()
-		propagateAttraction(&s.attraction, &s.source, s.HalfDistance)
+		util.PropagateAttraction(&s.attraction, &s.source, s.HalfDistance)
 	}
 }
 
@@ -146,14 +147,15 @@ func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 
 // fillFromQuery marks every cell containing a matching tree in s.presence
 // and seeds the attraction grid: every such cell is set to that source's own
-// local occupancy fraction raised to DensityWeight (see densitySeeding),
+// local occupancy fraction raised to DensityWeight (see util.DensitySeeding),
 // everything else to 0. Every such cell is its own source, every other cell
-// has none (res.NoCell). propagateAttraction then propagates these seeds
-// and sources outward.
+// has none (res.NoCell). util.PropagateAttraction then propagates these
+// seeds and sources outward.
 //
 // This is the only pass over the trees. It seeds every source at 1, which
 // is final for DensityWeight 0 (occupancy^0 is 1 for any occupancy);
-// otherwise, seedDensity rescales the seeds in a single pass over the grid.
+// otherwise, util.DensitySeeding.SeedDensity rescales the seeds in a
+// single pass over the grid.
 func (s *TreeAttraction) fillFromQuery() {
 	s.presence.Fill(false)
 	s.attraction.Fill(0.0)
@@ -170,5 +172,5 @@ func (s *TreeAttraction) fillFromQuery() {
 		}
 	}
 
-	s.density.seedDensity(&s.presence, &s.attraction)
+	s.density.SeedDensity(&s.presence, &s.attraction)
 }

@@ -1,4 +1,4 @@
-package sys
+package util
 
 import (
 	"math"
@@ -62,8 +62,8 @@ func abs(v int) int {
 
 func runOctants(seeds *res.Grid[float64], halfDistance float64) res.Grid[res.OctantSources] {
 	sources := res.NewGrid[res.OctantSources](seeds.Width(), seeds.Height(), seeds.CellSize())
-	buf := newOctantBuffers(seeds.Height())
-	propagateOctants(&sources, seeds, halfDistance, &buf)
+	buf := NewOctantBuffers(seeds.Height())
+	PropagateOctants(&sources, seeds, halfDistance, &buf)
 	return sources
 }
 
