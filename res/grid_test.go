@@ -57,3 +57,16 @@ func TestGridContains(t *testing.T) {
 	assert.False(t, g.Contains(20, 0))
 	assert.False(t, g.Contains(0, 10))
 }
+
+func TestGridPtr(t *testing.T) {
+	g := NewGrid[OctantSources](4, 3, 10)
+
+	p := g.Ptr(2, 1)
+	p.Attraction[3] = 0.5
+	p.Offsets[3] = [2]int16{1, -2}
+
+	assert.Same(t, p, g.Ptr(2, 1))
+	assert.Equal(t, float32(0.5), g.Get(2, 1).Attraction[3])
+	assert.Equal(t, [2]int16{1, -2}, g.Get(2, 1).Offsets[3])
+	assert.Equal(t, OctantSources{}, g.Get(1, 2))
+}

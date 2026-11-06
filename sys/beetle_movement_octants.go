@@ -150,8 +150,8 @@ func (s *BeetleMovementOctants) Update(world *ecs.World) {
 					continue
 				}
 
-				r := sources.Get(pos.X, pos.Y)
-				k := selectOctant(rng, &r)
+				r := sources.Ptr(pos.X, pos.Y)
+				k := selectOctant(rng, r)
 				if k < 0 {
 					// No tree visible: stay in place.
 					if presence.Get(pos.X, pos.Y) {
