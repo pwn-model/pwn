@@ -146,10 +146,9 @@ func propagateQuadrant(
 				vy, oy = ayV, ayO
 			}
 
-			r := sources.Get(x, y)
+			r := sources.Ptr(x, y)
 			r.Offsets[kx], r.Attraction[kx] = ox, float32(vx)
 			r.Offsets[ky], r.Attraction[ky] = oy, float32(vy)
-			sources.Set(x, y, r)
 		}
 		prevXValues, curXValues = curXValues, prevXValues
 		prevXOffsets, curXOffsets = curXOffsets, prevXOffsets
