@@ -281,7 +281,7 @@ func TestTreeAttractionSeedsMatchBruteForce(t *testing.T) {
 	s.Initialize(a.World)
 	s.fillFromQuery()
 
-	r := s.densityRadiusCells
+	r := s.density.radiusCells
 	for x := range w {
 		for y := range h {
 			if !s.presence.Get(x, y) {
@@ -296,7 +296,7 @@ func TestTreeAttractionSeedsMatchBruteForce(t *testing.T) {
 					}
 				}
 			}
-			expected := math.Pow(float64(count)/s.maxCount, s.DensityWeight)
+			expected := math.Pow(float64(count)/s.density.maxCount, s.DensityWeight)
 			assert.Equal(t, expected, s.attraction.Get(x, y), "cell (%d, %d)", x, y)
 		}
 	}
