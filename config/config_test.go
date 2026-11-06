@@ -43,6 +43,29 @@ systems:
 	assert.Equal(t, 0.2, initTrees.BeetlePrevalence)
 }
 
+func TestConfig_UnmarshalSystems_TreeAttractionOctants(t *testing.T) {
+	var cfg config.Config
+	err := yaml.Unmarshal([]byte(`
+systems:
+  - type: TreeAttractionOctants
+    tick_of_year: 18
+    damaged_trees: true
+    half_distance: 50
+    density_radius: 20
+    density_weight: 1
+`), &cfg)
+	require.NoError(t, err)
+	require.Len(t, cfg.Systems, 1)
+
+	s, ok := cfg.Systems[0].System.(*sys.TreeAttractionOctants)
+	require.True(t, ok)
+	assert.Equal(t, 18, s.TickOfYear)
+	assert.True(t, s.DamagedTrees)
+	assert.Equal(t, 50.0, s.HalfDistance)
+	assert.Equal(t, 20, s.DensityRadius)
+	assert.Equal(t, 1.0, s.DensityWeight)
+}
+
 func TestConfig_UnmarshalSystems_UnknownType(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`

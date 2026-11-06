@@ -1,12 +1,11 @@
 package sys
 
 import (
-	"math"
-
 	"github.com/mlange-42/ark/ecs"
 	"github.com/pwn-model/pwn/comp"
 	"github.com/pwn-model/pwn/config"
 	"github.com/pwn-model/pwn/res"
+	"github.com/pwn-model/pwn/util"
 )
 
 func init() {
@@ -24,16 +23,16 @@ func init() {
 // DensityWeight values, since healthy and damaged trees plausibly attract
 // vectors differently.
 //
-// Each source tree seeds propagateAttraction with its own local occupancy
-// fraction (see fillFromQuery), raised to DensityWeight, instead of a
-// uniform value: a denser cluster starts from a taller seed, so it can
+// Each source tree seeds util.PropagateAttraction with its own local
+// occupancy fraction (see fillFromQuery), raised to DensityWeight, instead
+// of a uniform value: a denser cluster starts from a taller seed, so it can
 // out-reach and win cells that a closer but sparser source would otherwise
 // have claimed by max-relaxation.
 //
-// Along with the field, propagateAttraction traces each cell's source: the
-// tree cell its value was propagated from. This is not necessarily the
-// nearest tree: a cell won by a farther but denser cluster gets a cell of
-// that cluster as its source. With DensityWeight > 0, even a tree's own
+// Along with the field, util.PropagateAttraction traces each cell's
+// source: the tree cell its value was propagated from. This is not
+// necessarily the nearest tree: a cell won by a farther but denser cluster
+// gets a cell of that cluster as its source. With DensityWeight > 0, even a tree's own
 // cell can get another source, if a neighbouring dense cluster out-reaches
 // its own seed.
 type TreeAttraction struct {
@@ -66,7 +65,7 @@ type TreeAttraction struct {
 	// Independent of HalfDistance: this is the "how clustered is this
 	// source" scale, not the "how far does its seed reach" scale. Must be
 	// a multiple of the world's base cell size. Unused, and not validated,
-	// when DensityWeight is 0 -- see DensityWeight and fillFromQuery.
+	// when DensityWeight is 0 -- see DensityWeight and util.DensitySeeding.
 	DensityRadius int `yaml:"density_radius"`
 
 	// DensityWeight is the exponent applied to a source's local occupancy
@@ -77,7 +76,7 @@ type TreeAttraction struct {
 	// decay field), 1 makes the seed scale linearly with local occupancy,
 	// and >1 makes denser clusters reach disproportionately farther than
 	// the same trees spread out. Since occupancy is normalized to (0, 1],
-	// every seed -- and so, by propagateAttraction's max-relaxation, the
+	// every seed -- and so, by util.PropagateAttraction's max-relaxation, the
 	// whole resulting field -- stays within (0, 1] regardless of
 	// DensityRadius or how densely populated the world is.
 	DensityWeight float64 `yaml:"density_weight"`
@@ -85,16 +84,6 @@ type TreeAttraction struct {
 	timeRes ecs.Resource[res.Time]
 
 	filter *ecs.Filter1[comp.Position]
-
-	// densityRadiusCells is DensityRadius expressed in grid cells. Left at
-	// its zero value when DensityWeight is 0.
-	densityRadiusCells int
-
-	// maxCount is the number of cells in a full (2*densityRadiusCells+1)
-	// square window, i.e. the largest localCount can ever be. Dividing by
-	// it turns a raw neighbour count into an occupancy fraction in (0, 1].
-	// Left at its zero value when DensityWeight is 0.
-	maxCount float64
 
 	attraction res.Grid[float64]
 
@@ -109,12 +98,8 @@ type TreeAttraction struct {
 	// with it.
 	source res.Grid[uint32]
 
-	// sat is a reused (width+1)*(height+1) summed-area-table buffer for
-	// counting each source's local density, laid out the same column-major
-	// way as res.Grid with an extra leading zero row/column. Left
-	// unallocated when DensityWeight is 0, since fillFromQuery's fast path
-	// never touches it.
-	sat []float64
+	// density scales each source's seed by its local density.
+	density util.DensitySeeding
 }
 
 // Initialize the system.
@@ -144,19 +129,7 @@ func (s *TreeAttraction) Initialize(world *ecs.World) {
 		})
 	}
 
-	// At DensityWeight 0, occupancy^0 is 1 regardless of local density (see
-	// fillFromQuery's fast path), so DensityRadius is never consulted:
-	// don't require it to be valid, and don't allocate the buffer that
-	// only the density count needs.
-	if s.DensityWeight != 0 {
-		if s.DensityRadius%ws.CellSize() != 0 {
-			panic("DensityRadius of the dispersal submodel must be a multiple of the world's base cell size.")
-		}
-		s.densityRadiusCells = s.DensityRadius / ws.CellSize()
-		s.maxCount = float64((2*s.densityRadiusCells + 1) * (2*s.densityRadiusCells + 1))
-
-		s.sat = make([]float64, (ws.Width()+1)*(ws.Height()+1))
-	}
+	s.density = util.NewDensitySeeding(s.DensityWeight, s.DensityRadius, ws)
 }
 
 // Update the system.
@@ -165,7 +138,7 @@ func (s *TreeAttraction) Update(_ *ecs.World) {
 
 	if toy == s.TickOfYear {
 		s.fillFromQuery()
-		propagateAttraction(&s.attraction, &s.source, s.HalfDistance)
+		util.PropagateAttraction(&s.attraction, &s.source, s.HalfDistance)
 	}
 }
 
@@ -174,14 +147,15 @@ func (s *TreeAttraction) Finalize(_ *ecs.World) {}
 
 // fillFromQuery marks every cell containing a matching tree in s.presence
 // and seeds the attraction grid: every such cell is set to that source's own
-// local occupancy fraction (localCount divided by maxCount, always in
-// (0, 1]) raised to DensityWeight, everything else to 0. Every such cell is
-// its own source, every other cell has none (res.NoCell).
-// propagateAttraction then propagates these seeds and sources outward.
+// local occupancy fraction raised to DensityWeight (see util.DensitySeeding),
+// everything else to 0. Every such cell is its own source, every other cell
+// has none (res.NoCell). util.PropagateAttraction then propagates these
+// seeds and sources outward.
 //
 // This is the only pass over the trees. It seeds every source at 1, which
 // is final for DensityWeight 0 (occupancy^0 is 1 for any occupancy);
-// otherwise, seedDensity rescales the seeds in a single pass over the grid.
+// otherwise, util.DensitySeeding.SeedDensity rescales the seeds in a
+// single pass over the grid.
 func (s *TreeAttraction) fillFromQuery() {
 	s.presence.Fill(false)
 	s.attraction.Fill(0.0)
@@ -198,73 +172,5 @@ func (s *TreeAttraction) fillFromQuery() {
 		}
 	}
 
-	if s.DensityWeight != 0 {
-		s.seedDensity()
-	}
-}
-
-// seedDensity computes a summed-area table of s.presence (counting each
-// occupied cell as 1) into s.sat, so that localCount can answer a windowed
-// tree count in O(1) instead of O(radius^2) per source, and sets the seed of
-// every source from it.
-//
-// Both happen in the same pass over the grid: a source's localCount only
-// needs the table up to column x+densityRadiusCells+1, so the sources of
-// each column are seeded as soon as that table column is complete, lagging
-// densityRadiusCells+1 columns behind, plus all remaining columns once the
-// last table column is done.
-func (s *TreeAttraction) seedDensity() {
-	w, h := s.presence.Width(), s.presence.Height()
-	stride := h + 1
-	idx := func(x, y int) int { return x*stride + y }
-
-	sat := s.sat
-	for x := 0; x <= w; x++ {
-		sat[idx(x, 0)] = 0
-	}
-	for y := 0; y <= h; y++ {
-		sat[idx(0, y)] = 0
-	}
-
-	r := s.densityRadiusCells
-	next := 0 // next grid column to seed
-	for x := 1; x <= w; x++ {
-		for y := 1; y <= h; y++ {
-			var v float64
-			if s.presence.Get(x-1, y-1) {
-				v = 1
-			}
-			sat[idx(x, y)] = v + sat[idx(x-1, y)] + sat[idx(x, y-1)] - sat[idx(x-1, y-1)]
-		}
-
-		last := x - 1 - r
-		if x == w {
-			last = w - 1
-		}
-		for ; next <= last; next++ {
-			for y := range h {
-				if s.presence.Get(next, y) {
-					occupancy := s.localCount(next, y) / s.maxCount
-					s.attraction.Set(next, y, math.Pow(occupancy, s.DensityWeight))
-				}
-			}
-		}
-	}
-}
-
-// localCount returns the number of same-type trees within DensityRadius of
-// (x, y), inclusive of the tree at (x, y) itself (so the result is always
-// >= 1 when called on an actual source cell), via the summed-area table
-// built by seedDensity.
-func (s *TreeAttraction) localCount(x, y int) float64 {
-	w, h := s.presence.Width(), s.presence.Height()
-	stride := h + 1
-	idx := func(xx, yy int) int { return xx*stride + yy }
-
-	r := s.densityRadiusCells
-	x1, x2 := max(x-r, 0), min(x+r, w-1)
-	y1, y2 := max(y-r, 0), min(y+r, h-1)
-
-	sat := s.sat
-	return sat[idx(x2+1, y2+1)] - sat[idx(x1, y2+1)] - sat[idx(x2+1, y1)] + sat[idx(x1, y1)]
+	s.density.SeedDensity(&s.presence, &s.attraction)
 }

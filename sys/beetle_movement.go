@@ -111,6 +111,10 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 				if step == 0 && tick == et.TickOfEmergence {
 					// Undirected flight away from the tree the beetle emerged from,
 					// in one go, in a uniformly random direction.
+					//
+					// TODO: skip the random draws (distance and direction) when
+					// EmergenceFlightDistance is 0. Changes RNG consumption, so it must
+					// be done in the sibling Julia implementation, too.
 					flight := min(rng.Float64()*s.emergenceFlightInCells, maxStep)
 					dx, dy := util.RandomDirection(rng)
 					pos.X += int(math.Round(dx * flight))
