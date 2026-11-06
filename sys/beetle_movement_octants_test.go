@@ -247,3 +247,15 @@ func TestBeetleMovementOctantsPartialFlight(t *testing.T) {
 		assert.Equal(t, map[[2]int]int{{expected, 25}: 50}, beetlePositions(world))
 	}
 }
+
+// Without an emergence flight, no random numbers are drawn for it. Without
+// healthy trees, emerging beetles (still feeding, not on a healthy tree)
+// don't draw any others either.
+func TestBeetleMovementOctantsNoEmergenceFlightDrawsNoRandomNumbers(t *testing.T) {
+	world, s := setupBeetleMovementOctantsWorld(t, beetleMovementOctantsSetup{})
+	s.Update(world)
+
+	assert.Equal(t, map[[2]int]int{{100, 25}: 50}, beetlePositions(world))
+	src := ecs.GetResource[resource.Rand](world).Source
+	assert.Equal(t, res.NewXoshiro256pp(1).Uint64(), src.Uint64())
+}
