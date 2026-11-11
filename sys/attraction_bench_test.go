@@ -11,10 +11,9 @@ import (
 	"github.com/pwn-model/pwn/res"
 )
 
-// Benchmarks of the two attraction models (TreeAttraction,
-// TreeAttractionOctants) and the two beetle movement models using them
-// (BeetleMovement, BeetleMovementOctants), on a 10 km x 10 km world with 10 m
-// cells and a tree in 90 % of the cells, 3 % of them damaged.
+// Benchmarks of tree attraction (TreeAttraction) and the beetle movement
+// using it (BeetleMovement), on a 10 km x 10 km world with 10 m cells and a
+// tree in 90 % of the cells, 3 % of them damaged.
 //
 // Attraction benchmarks measure one calculation of the healthy-tree field.
 // Movement benchmarks measure one tick of 10,000 beetles with 7 steps each,
@@ -68,16 +67,6 @@ func BenchmarkTreeAttraction(b *testing.B) {
 	}
 }
 
-func BenchmarkTreeAttractionOctants(b *testing.B) {
-	world := newAttractionBenchWorld()
-	s := TreeAttractionOctants{TickOfYear: 0, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1}
-	s.Initialize(world)
-
-	for b.Loop() {
-		s.Update(world)
-	}
-}
-
 // benchmarkMovement benchmarks a movement system, with attraction computed
 // once by the given healthy and damaged attraction systems. Before each
 // iteration (not measured), all beetles are replaced by fresh ones at random
@@ -118,17 +107,6 @@ func BenchmarkBeetleMovement(b *testing.B) {
 		&TreeAttraction{TickOfYear: 0, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1},
 		&TreeAttraction{TickOfYear: 0, DamagedTrees: true, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1},
 		&BeetleMovement{
-			StepsPerTick: movementBenchSteps, DistancePerStep: 2000, EmergenceFlightDistance: 100,
-			DurationFeeding: 0, FeedingProbability: 0.5, LeaveTreeProbability: 0.25,
-		},
-	)
-}
-
-func BenchmarkBeetleMovementOctants(b *testing.B) {
-	benchmarkMovement(b,
-		&TreeAttractionOctants{TickOfYear: 0, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1},
-		&TreeAttractionOctants{TickOfYear: 0, DamagedTrees: true, HalfDistance: 50, DensityRadius: 20, DensityWeight: 1},
-		&BeetleMovementOctants{
 			StepsPerTick: movementBenchSteps, DistancePerStep: 2000, EmergenceFlightDistance: 100,
 			DurationFeeding: 0, FeedingProbability: 0.5, LeaveTreeProbability: 0.25,
 		},

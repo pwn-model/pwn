@@ -10,9 +10,8 @@ import (
 // density: each source cell's seed is set to its local occupancy fraction
 // (the number of source cells within densityRadius, divided by the number
 // of cells that fit in that radius -- so always in (0, 1]) raised to
-// densityWeight. Shared by the systems computing attraction fields from
-// trees (TreeAttraction, TreeAttractionOctants); see their docs for the
-// meaning of DensityRadius and DensityWeight.
+// densityWeight. Used by TreeAttraction; see its docs for the meaning of
+// DensityRadius and DensityWeight.
 type DensitySeeding struct {
 	densityWeight float64
 

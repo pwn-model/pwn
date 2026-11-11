@@ -41,13 +41,6 @@ func (g *Grid[T]) Get(x, y int) T {
 	return g.values[y+g.height*x]
 }
 
-// Ptr returns a pointer to the value at the given coordinates, e.g. to
-// modify parts of a large value in place instead of copying it with Get and
-// Set. The pointer is valid as long as the grid is.
-func (g *Grid[T]) Ptr(x, y int) *T {
-	return &g.values[y+g.height*x]
-}
-
 // Set the tree entity at the given coordinates.
 func (g *Grid[T]) Set(x, y int, e T) {
 	g.values[y+g.height*x] = e

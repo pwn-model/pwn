@@ -43,54 +43,6 @@ systems:
 	assert.Equal(t, 0.2, initTrees.BeetlePrevalence)
 }
 
-func TestConfig_UnmarshalSystems_TreeAttractionOctants(t *testing.T) {
-	var cfg config.Config
-	err := yaml.Unmarshal([]byte(`
-systems:
-  - type: TreeAttractionOctants
-    tick_of_year: 18
-    damaged_trees: true
-    half_distance: 50
-    density_radius: 20
-    density_weight: 1
-`), &cfg)
-	require.NoError(t, err)
-	require.Len(t, cfg.Systems, 1)
-
-	s, ok := cfg.Systems[0].System.(*sys.TreeAttractionOctants)
-	require.True(t, ok)
-	assert.Equal(t, 18, s.TickOfYear)
-	assert.True(t, s.DamagedTrees)
-	assert.Equal(t, 50.0, s.HalfDistance)
-	assert.Equal(t, 20, s.DensityRadius)
-	assert.Equal(t, 1.0, s.DensityWeight)
-}
-
-func TestConfig_UnmarshalSystems_BeetleMovementOctants(t *testing.T) {
-	var cfg config.Config
-	err := yaml.Unmarshal([]byte(`
-systems:
-  - type: BeetleMovementOctants
-    steps_per_tick: 4
-    distance_per_step: 500
-    emergence_flight_distance: 200
-    duration_feeding: 3
-    feeding_probability: 0.5
-    leave_tree_probability: 0.2
-`), &cfg)
-	require.NoError(t, err)
-	require.Len(t, cfg.Systems, 1)
-
-	s, ok := cfg.Systems[0].System.(*sys.BeetleMovementOctants)
-	require.True(t, ok)
-	assert.Equal(t, 4, s.StepsPerTick)
-	assert.Equal(t, 500.0, s.DistancePerStep)
-	assert.Equal(t, 200.0, s.EmergenceFlightDistance)
-	assert.Equal(t, 3, s.DurationFeeding)
-	assert.Equal(t, 0.5, s.FeedingProbability)
-	assert.Equal(t, 0.2, s.LeaveTreeProbability)
-}
-
 func TestConfig_UnmarshalSystems_UnknownType(t *testing.T) {
 	var cfg config.Config
 	err := yaml.Unmarshal([]byte(`
