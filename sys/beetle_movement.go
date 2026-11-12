@@ -39,7 +39,7 @@ type BeetleMovement struct {
 	healthyFieldRes ecs.Resource[res.HealthyTreeAttraction]
 	damagedFieldRes ecs.Resource[res.DamagedTreeAttraction]
 
-	filter *ecs.Filter2[comp.BeetlePosition, comp.EmergenceTick]
+	filter *ecs.Filter3[comp.BeetlePosition, comp.EmergenceTick, comp.WalkDirection]
 
 	feedingInfected res.Grid[uint32]
 
@@ -87,15 +87,23 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 	q := s.filter.Query()
 	for q.NextTable() {
 		entities := q.Entities()
-		positions, emergenceTicks := q.GetColumns()
+		positions, emergenceTicks, walkDirections := q.GetColumns()
 		for i := range positions {
 			pos := &positions[i]
 			et := &emergenceTicks[i]
+			wd := &walkDirections[i]
 
 			for step := range s.StepsPerTick {
-				isFeeding := true
-				if tick >= et.TickOfEmergence+s.DurationFeeding {
-					isFeeding = rng.Float64() < s.FeedingProbability
+				// A beetle still on the way keeps its mode.
+				walking := wd.Dx != 0 || wd.Dy != 0
+				var isFeeding bool
+				if wd.OnTheWay {
+					isFeeding = wd.Feeding
+				} else {
+					isFeeding = true
+					if tick >= et.TickOfEmergence+s.DurationFeeding {
+						isFeeding = rng.Float64() < s.FeedingProbability
+					}
 				}
 
 				if isFeeding {
@@ -120,9 +128,24 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 						maxStep -= flight
 						inside = nearest.Contains(pos.X, pos.Y)
 					}
-				} else if presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability {
-					// Walk out of the area attracted by the tree the beetle leaves.
-					maxStep, inside = walk(rng, pos, &nearest, maxStep)
+				} else if walking || (presence.Get(pos.X, pos.Y) && rng.Float64() < s.LeaveTreeProbability) {
+					// Walk out of the area attracted by the tree the beetle leaves,
+					// in a new random direction, or in the stored one if the beetle
+					// is still walking away from a tree it left in an earlier step.
+					var dx, dy float64
+					if walking {
+						dx, dy = float64(wd.Dx), float64(wd.Dy)
+					} else {
+						dx, dy = util.RandomDirection(rng)
+					}
+					var leftArea bool
+					maxStep, inside, leftArea = walk(pos, &nearest, maxStep, dx, dy)
+					if inside && !leftArea {
+						// Out of budget before leaving the area. Continue in the next step.
+						*wd = comp.WalkDirection{Dx: float32(dx), Dy: float32(dy), Feeding: isFeeding, OnTheWay: true}
+						continue
+					}
+					*wd = comp.WalkDirection{}
 				}
 
 				if !inside {
@@ -133,6 +156,7 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 
 				if presence.Get(pos.X, pos.Y) {
 					s.feed(pos.X, pos.Y)
+					*wd = comp.WalkDirection{}
 					continue
 				}
 
@@ -151,6 +175,10 @@ func (s *BeetleMovement) Update(world *ecs.World) {
 
 				if presence.Get(pos.X, pos.Y) {
 					s.feed(pos.X, pos.Y)
+					*wd = comp.WalkDirection{}
+				} else {
+					// Out of budget before reaching the target. Continue in the next step.
+					*wd = comp.WalkDirection{Feeding: isFeeding, OnTheWay: true}
 				}
 			}
 		}
@@ -170,23 +198,22 @@ func (s *BeetleMovement) feed(x, y int) {
 	s.feedingInfected.Set(x, y, s.feedingInfected.Get(x, y)+1)
 }
 
-// walk moves pos along a straight line in a uniformly random direction, out
-// of the area of the source the beetle is in. It advances in steps of one
+// walk moves pos along a straight line in direction (dx, dy), a unit vector,
+// out of the area of the source the beetle is in. It advances in steps of one
 // cell size of distance, each costing 1 of the budget, and stops as soon as
 // the cell's source differs, or the remaining budget (in cells) is below 1.
-// Returns the remaining budget, and false if the beetle left the grid (pos
-// is then outside of it).
-func walk(rng *rand.Rand, pos *comp.BeetlePosition, source *res.Grid[uint32], budget float64) (float64, bool) {
+// Returns the remaining budget, false if the beetle left the grid (pos is
+// then outside of it), and whether it left the source's area.
+func walk(pos *comp.BeetlePosition, source *res.Grid[uint32], budget, dx, dy float64) (float64, bool, bool) {
 	leaving := source.Get(pos.X, pos.Y)
-	dx, dy := util.RandomDirection(rng)
 	x0, y0 := pos.X, pos.Y
 	for k := 1; budget >= 1 && source.Get(pos.X, pos.Y) == leaving; k++ {
 		pos.X = x0 + int(math.Round(float64(k)*dx))
 		pos.Y = y0 + int(math.Round(float64(k)*dy))
 		budget--
 		if !source.Contains(pos.X, pos.Y) {
-			return budget, false
+			return budget, false, true
 		}
 	}
-	return budget, true
+	return budget, true, source.Get(pos.X, pos.Y) != leaving
 }
