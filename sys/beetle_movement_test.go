@@ -33,9 +33,9 @@ func setupBeetleMovementWorld(t *testing.T, emergenceFlightDistance float64) (*e
 	healthy.Update(world)
 	damaged.Update(world)
 
-	beetleMap := ecs.NewMap2[comp.BeetlePosition, comp.EmergenceTick](world)
+	beetleMap := ecs.NewMap3[comp.BeetlePosition, comp.EmergenceTick, comp.WalkDirection](world)
 	for range 50 {
-		beetleMap.NewEntity(&comp.BeetlePosition{X: 100, Y: 25}, &comp.EmergenceTick{TickOfEmergence: 0})
+		beetleMap.NewEntity(&comp.BeetlePosition{X: 100, Y: 25}, &comp.EmergenceTick{TickOfEmergence: 0}, &comp.WalkDirection{})
 	}
 
 	s := BeetleMovement{
@@ -133,9 +133,9 @@ func TestBeetleMovementLeaveTreeOutOfWorldDies(t *testing.T) {
 	damaged.Update(world)
 
 	// Emerged in an earlier tick, so no emergence flight.
-	beetleMap := ecs.NewMap2[comp.BeetlePosition, comp.EmergenceTick](world)
+	beetleMap := ecs.NewMap3[comp.BeetlePosition, comp.EmergenceTick, comp.WalkDirection](world)
 	for range 10 {
-		beetleMap.NewEntity(&comp.BeetlePosition{X: 100, Y: 25}, &comp.EmergenceTick{TickOfEmergence: -1})
+		beetleMap.NewEntity(&comp.BeetlePosition{X: 100, Y: 25}, &comp.EmergenceTick{TickOfEmergence: -1}, &comp.WalkDirection{})
 	}
 
 	s := BeetleMovement{

@@ -41,14 +41,15 @@ func TestBeetleEmergenceCreatesBeetlesFromSourceTrees(t *testing.T) {
 
 	s.Update(a.World)
 
-	beetleFilter := ecs.NewFilter3[comp.BeetlePosition, comp.EmergenceTick, comp.LifeExpectancy](a.World)
+	beetleFilter := ecs.NewFilter4[comp.BeetlePosition, comp.EmergenceTick, comp.LifeExpectancy, comp.WalkDirection](a.World)
 	q := beetleFilter.Query()
 	assert.Equal(t, 8, q.Count())
 
 	counts := map[[2]int]int{}
 	for q.Next() {
-		bp, et, le := q.Get()
+		bp, et, le, wd := q.Get()
 		counts[[2]int{bp.X, bp.Y}]++
+		assert.Equal(t, comp.WalkDirection{}, *wd)
 		assert.Equal(t, time.Tick, et.TickOfEmergence)
 		// ExpFloat64 is never negative, so death can never precede the
 		// current tick.

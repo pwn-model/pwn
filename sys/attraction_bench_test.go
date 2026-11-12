@@ -82,16 +82,17 @@ func benchmarkMovement(b *testing.B, healthy, damaged, movement app.System) {
 
 	randRes := ecs.GetResource[resource.Rand](world)
 	beetles := ecs.NewFilter1[comp.BeetlePosition](world)
-	beetleMap := ecs.NewMap2[comp.BeetlePosition, comp.EmergenceTick](world)
+	beetleMap := ecs.NewMap3[comp.BeetlePosition, comp.EmergenceTick, comp.WalkDirection](world)
 
 	for b.Loop() {
 		b.StopTimer()
 		world.RemoveEntities(beetles.Batch(), nil)
 		randRes.Source = res.NewXoshiro256pp(1)
 		rng := rand.New(res.NewXoshiro256pp(2))
-		beetleMap.NewBatchFn(movementBenchBeetles, func(_ ecs.Entity, pos *comp.BeetlePosition, et *comp.EmergenceTick) {
+		beetleMap.NewBatchFn(movementBenchBeetles, func(_ ecs.Entity, pos *comp.BeetlePosition, et *comp.EmergenceTick, wd *comp.WalkDirection) {
 			pos.X, pos.Y = rng.IntN(attractionBenchCells), rng.IntN(attractionBenchCells)
 			et.TickOfEmergence = -1
+			*wd = comp.WalkDirection{}
 		})
 		b.StartTimer()
 
